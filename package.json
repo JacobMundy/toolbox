@@ -1,0 +1,25 @@
+{
+  "name": "toolbox",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "serve": "npx -y http-server frontend -p 3000",
+    "test": "playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/cli": "^1",
+    "@types/node": "^25.6.0"
+  },
+  "dependencies": {
+    "monaco-editor": "^0.55.1",
+    "prismjs": "^1.30.0"
+  }
+}

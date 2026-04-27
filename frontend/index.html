@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toolbox — Personal Workspace</title>
+    <meta name="description" content="A modular desktop-like toolbox with calculator, Python interpreter, string tools, clock, markdown notepad, and diff checker.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Fuse.js for fuzzy search -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- ═══════ Navbar ═══════ -->
+    <nav id="navbar" data-tauri-drag-region>
+        <div class="nav-left">
+            <div class="app-logo">🧰</div>
+            <span class="app-title">Toolbox</span>
+        </div>
+        <div class="nav-center">
+            <div class="search-container" id="search-container">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="search-input" placeholder="Search tools…" autocomplete="off" spellcheck="false">
+                <kbd class="search-kbd">Ctrl K</kbd>
+                <div id="search-results" class="search-results"></div>
+            </div>
+        </div>
+        <div class="nav-right">
+            <button id="import-btn" class="nav-btn" title="Import State from JSON">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+            </button>
+            <select id="theme-switcher" class="nav-btn" style="width: auto; padding: 0 8px; font-size: 12px;">
+                <option value="glassy">Glassy</option>
+                <option value="solidDark">Solid Dark</option>
+                <option value="rounded">Rounded</option>
+                <option value="sharp">Sharp</option>
+            </select>
+            <button id="tile-btn" class="nav-btn" title="Tile all windows">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="1" y="1" width="6" height="6" rx="1" opacity=".9"/>
+                    <rect x="9" y="1" width="6" height="6" rx="1" opacity=".6"/>
+                    <rect x="1" y="9" width="6" height="6" rx="1" opacity=".6"/>
+                    <rect x="9" y="9" width="6" height="6" rx="1" opacity=".4"/>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ═══════ Desktop ═══════ -->
+    <main id="desktop">
+        <div id="snap-preview" class="snap-preview"></div>
+
+        <div id="desktop-shortcuts" class="desktop-shortcuts"></div>
+    </main>
+
+    <!-- ═══════ Taskbar ═══════ -->
+    <footer id="taskbar">
+        <button id="app-drawer-btn" class="taskbar-btn start-btn" title="All Apps">🧰</button>
+        <div class="taskbar-divider"></div>
+        <div id="taskbar-items"></div>
+        <div class="taskbar-spacer"></div>
+        <div id="sys-stats" class="sys-stats" title="System Resources">
+            <span id="cpu-stat">CPU: 0%</span>
+            <span id="mem-stat">RAM: 0MB</span>
+        </div>
+    </footer>
+
+    <!-- App Drawer Menu -->
+    <div id="app-drawer" class="app-drawer">
+        <div class="app-drawer-grid" id="app-drawer-grid"></div>
+    </div>
+
+    <!-- ═══════ Core Scripts ═══════ -->
+    <script src="js/theme-manager.js"></script>
+    <script>
+        document.getElementById('theme-switcher').addEventListener('change', (e) => {
+            window.themeManager.applyTheme(e.target.value);
+        });
+        document.getElementById('theme-switcher').value = window.themeManager.currentTheme;
+    </script>
+    <script>
+        // System Monitor Logic
+        async function updateStats() {
+            if (window.__TAURI__) {
+                try {
+                    const stats = await window.__TAURI__.invoke('get_system_stats');
+                    document.getElementById('cpu-stat').textContent = `CPU: ${stats.cpu_usage.toFixed(1)}%`;
+                    document.getElementById('mem-stat').textContent = `RAM: ${stats.memory_usage_mb}MB`;
+                } catch (err) {
+                    console.error('Failed to fetch system stats:', err);
+                }
+            }
+        }
+        setInterval(updateStats, 2000);
+        updateStats();
+    </script>
+    <script src="js/tool-registry.js"></script>
+    <script src="js/state-manager.js"></script>
+    <script src="js/window-manager.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/command-palette.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Hook up the import button
+        document.getElementById('import-btn').addEventListener('click', async () => {
+            try {
+                await ToolboxState.promptImport();
+                alert('State imported successfully! Refreshing tools...');
+                location.reload();
+            } catch (e) {
+                if (e.message !== 'No file selected') {
+                    alert('Import failed: ' + e.message);
+                }
+            }
+        });
+    </script>
+
+    <!-- ═══════ Tools — add new tools here ═══════ -->
+    <script src="tools/string-replacer.js"></script>
+    <script src="tools/calculator.js"></script>
+    <script src="tools/redactor.js"></script>
+    <script src="tools/validator.js"></script>
+    <script src="tools/diff-checker.js"></script>
+    <script src="tools/clock.js"></script>
+    <script src="tools/notepad.js"></script>
+    <script src="tools/python-interp.js"></script>
+    <script src="tools/workspace-browser.js"></script>
+
+    <!-- ═══════ Command Palette Init ═══════ -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        window.cmdPalette = new CommandPalette();
+
+        // Register built-in utility actions
+        window.cmdPalette.register({
+            id: 'tile-windows', name: 'Tile All Windows', icon: '⊞',
+            description: 'Arrange all open windows in a grid',
+            section: 'Window',
+            handler: () => App.wm.tileWindows(),
+        });
+        window.cmdPalette.register({
+            id: 'theme-glassy', name: 'Theme: Glassy', icon: '🔮',
+            section: 'Settings',
+            handler: () => { window.themeManager.applyTheme('glassy'); document.getElementById('theme-switcher').value = 'glassy'; },
+        });
+        window.cmdPalette.register({
+            id: 'theme-solid', name: 'Theme: Solid Dark', icon: '🌑',
+            section: 'Settings',
+            handler: () => { window.themeManager.applyTheme('solidDark'); document.getElementById('theme-switcher').value = 'solidDark'; },
+        });
+        window.cmdPalette.register({
+            id: 'theme-sharp', name: 'Theme: Sharp', icon: '🔷',
+            section: 'Settings',
+            handler: () => { window.themeManager.applyTheme('sharp'); document.getElementById('theme-switcher').value = 'sharp'; },
+        });
+        window.cmdPalette.register({
+            id: 'theme-rounded', name: 'Theme: Rounded', icon: '🟣',
+            section: 'Settings',
+            handler: () => { window.themeManager.applyTheme('rounded'); document.getElementById('theme-switcher').value = 'rounded'; },
+        });
+        window.cmdPalette.register({
+            id: 'focus-search', name: 'Focus Search Bar', icon: '🔍',
+            description: 'Jump to the search bar (Ctrl+K)',
+            section: 'Navigation',
+            handler: () => { document.getElementById('search-input').focus(); document.getElementById('search-input').select(); },
+        });
+        window.cmdPalette.register({
+            id: 'export-state', name: 'Export Toolbox State', icon: '💾',
+            description: 'Download a full backup of all tool data',
+            section: 'Data',
+            handler: () => ToolboxState.downloadExport(),
+        });
+        window.cmdPalette.register({
+            id: 'import-state', name: 'Import Toolbox State', icon: '📥',
+            description: 'Restore from a previously exported backup',
+            section: 'Data',
+            handler: () => ToolboxState.promptImport().then(() => alert('State restored! Refresh tools to apply.')).catch(e => alert('Import failed: ' + e.message)),
+        });
+
+        // Auto-save on close
+        ToolboxState.setupAutoSave();
+    });
+    </script>
+</body>
+</html>
