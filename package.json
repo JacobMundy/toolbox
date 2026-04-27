@@ -7,7 +7,9 @@
     "tauri": "tauri",
     "dev": "tauri dev",
     "serve": "npx -y http-server frontend -p 3000",
-    "test": "playwright test"
+    "test": "playwright test",
+    "sync-monaco": "shx mkdir -p frontend/vs && shx cp -r node_modules/monaco-editor/min/vs/* frontend/vs/",
+    "postinstall": "npm run sync-monaco"
   },
   "keywords": [],
   "author": "",
@@ -16,7 +18,8 @@
     "@playwright/test": "^1.59.1",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/cli": "^1",
-    "@types/node": "^25.6.0"
+    "@types/node": "^25.6.0",
+    "shx": "^0.4.0"
   },
   "dependencies": {
     "monaco-editor": "^0.55.1",

@@ -20,3 +20,7 @@ src-tauri/bin/
 # OS Files
 .DS_Store
 Thumbs.db
+
+# monaco
+frontend/vs/
+
