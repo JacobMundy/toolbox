@@ -3,6 +3,10 @@ This application is essentially a desktop emulator with a collection of tools th
 It started off as an html webapp with a similar structure, but I have since ported it to a tauri application using Google Antigravity.
 Because LLMs were used in the creation and porting of the app I decided to make it extremely modular. So one of the apps failing will generally not cause the whole application to crash.
 
+**Note**
+I have only tested the application and building it on Windows 11.
+It works on my machine ¯\_(ツ)_/¯
+
 * [Current Tools](#current-tools)
 * [Build Steps](#build-steps)
 * [Testing](#testing)
