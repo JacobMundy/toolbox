@@ -8,8 +8,8 @@
     "dev": "tauri dev",
     "serve": "npx -y http-server frontend -p 3000",
     "test": "playwright test",
-    "sync-monaco": "shx mkdir -p frontend/vs && shx cp -r node_modules/monaco-editor/min/vs/* frontend/vs/",
-    "postinstall": "npm run sync-monaco"
+    "sync-libs": "shx mkdir -p frontend/vs frontend/js/libs && shx cp -r node_modules/monaco-editor/min/vs/* frontend/vs/ && shx cp node_modules/sortablejs/Sortable.min.js frontend/js/libs/ && shx cp node_modules/fuse.js/dist/fuse.min.cjs frontend/js/libs/fuse.min.js",
+    "postinstall": "npm run sync-libs"
   },
   "keywords": [],
   "author": "",
@@ -22,7 +22,9 @@
     "shx": "^0.4.0"
   },
   "dependencies": {
+    "fuse.js": "^7.3.0",
     "monaco-editor": "^0.55.1",
-    "prismjs": "^1.30.0"
+    "prismjs": "^1.30.0",
+    "sortablejs": "^1.15.7"
   }
 }

@@ -48,8 +48,9 @@
     background:transparent; color:var(--text-muted); cursor:pointer;
     font-size:12px; font-weight:500; white-space:nowrap;
     transition:all .15s; font-family:'Inter',sans-serif;
-    max-width:160px; overflow:hidden; text-overflow:ellipsis;
+    max-width:160px; min-width: 0; overflow:hidden;
 }
+.np-tab span { flex: 1; overflow: hidden; text-overflow: ellipsis; }
 .np-tab:hover { background:rgba(255,255,255,.04); color:var(--text-secondary); }
 .np-tab.active {
     background:var(--bg-secondary); color:var(--text-primary);

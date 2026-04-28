@@ -139,7 +139,7 @@
 }
 .ws-file-list.grid .ws-file-item {
     flex-direction: column; text-align: center; padding: 12px 8px;
-    height: 100px; justify-content: center;
+    height: 100px; justify-content: center; min-width: 0; overflow: hidden;
 }
 .ws-file-list.grid .ws-file-icon { font-size: 36px; margin-bottom: 4px; }
 .ws-file-list.grid .ws-file-meta { display: none; }
@@ -152,7 +152,7 @@
     gap: 10px; padding: 12px;
 }
 .ws-file-list.tiles .ws-file-item {
-    padding: 8px 12px; height: 54px;
+    padding: 8px 12px; height: 54px; min-width: 0; overflow: hidden;
 }
 .ws-file-list.tiles .ws-file-icon { font-size: 28px; }
 .ws-file-list.tiles .ws-file-name { font-size: 12px; }

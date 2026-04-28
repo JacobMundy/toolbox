@@ -21,6 +21,7 @@ src-tauri/bin/
 .DS_Store
 Thumbs.db
 
-# monaco
+# libraries
 frontend/vs/
+frontend/js/libs/
 
