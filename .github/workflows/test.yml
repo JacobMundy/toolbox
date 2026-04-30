@@ -55,6 +55,6 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: toolbox-installer
-        path: src-tauri/target/release/bundle/
+        name: toolbox-installer-windows
+        path: src-tauri/target/release/bundle/**
         retention-days: 30

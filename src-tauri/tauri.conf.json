@@ -36,7 +36,7 @@
       }
     },
     "bundle": {
-      "active": false,
+      "active": true,
       "targets": "all",
       "identifier": "com.toolbox.app",
       "icon": [
