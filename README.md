@@ -15,6 +15,7 @@ It works on my machine ¯\\\_(ツ)_/¯
 * [Build Steps](#build-steps)
 * [Testing](#testing)
 * [Architecture](#architecture)
+* [To do](#todo)
   
 ## Current Tools
 * **Workspace Browser:** Simple file management inside a specified folder with the option to pin folders from local and network drives
@@ -23,6 +24,7 @@ It works on my machine ¯\\\_(ツ)_/¯
 * **Markdown Notepad:** Notepad with a preview panel to edit markdown, can be toggled to show preview only, editing view only, or side-by-side
 * **Clock/Timer/Stopwatch:** Window with tabs for a Clock, Timer, Stopwatch, and Work tab
 * **Various Data Tools:** Includes a Diff Checker (Monaco), Data Validator (CSV, JSON), and a PII Redactor
+* **Kanban Board:** Basic Kanban board with draggable items customizable columns and space for multiple renamable boards.
 
 ## Build Steps
 ### 1. Prerequisites
@@ -56,3 +58,13 @@ Any push to the repo also runs the tests via GitHub Actions.
 * **Frontend:** Vanilla HTML, CSS, and JS
 * **Backend:** Rust (Tauri), also handles some of the more intensive tool calls
 * **Modularity:** Each tool is separated into its own JS file with the ability to run commands handled by the rust backend, for example, the python interpreter and the workspaces both use rust due to their complexity.
+* **Libraries:** Makes use of both npm packages and Rust crates for frontend and backend tasks respectively.
+  * **Examples:** Monaco editor for Python Interp. Various Rust crates for the Workspace browser
+
+
+## TODO
+Add exhaustive list of libraries
+* Rust
+* npm
+
+Update readme as tools are added
