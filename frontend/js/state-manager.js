@@ -57,30 +57,50 @@ const ToolboxState = {
         console.log('ToolboxState: Loaded from localStorage');
     },
 
-    /** Save state to disk (debounced) */
-    async sync() {
-        if (this._isSyncing) return;
-        this._isSyncing = true;
+    _pendingSync: null,
+    _syncTimer: null,
 
-        if (window.__TAURI__) {
-            try {
-                const snapshot = {
-                    version: 1,
-                    timestamp: new Date().toISOString(),
-                    data: this._cache
-                };
-                await window.__TAURI__.invoke('workspace_write', {
-                    req: {
-                        filename: this.STATE_FILENAME,
-                        content: JSON.stringify(snapshot, null, 2),
-                        subfolder: this.STATE_SUBFOLDER,
-                    }
-                });
-            } catch (e) {
-                console.error('ToolboxState: Sync to disk failed', e);
-            }
+    /** Save state to disk (debounced and queued) */
+    async sync() {
+        // If already syncing, just mark as needing another sync after
+        if (this._isSyncing) {
+            this._pendingSync = true;
+            return;
         }
-        this._isSyncing = false;
+
+        // Debounce actual disk I/O to avoid spamming the SSD
+        if (this._syncTimer) clearTimeout(this._syncTimer);
+        this._syncTimer = setTimeout(async () => {
+            this._isSyncing = true;
+            this._pendingSync = false;
+
+            if (window.__TAURI__) {
+                try {
+                    const snapshot = {
+                        version: 1,
+                        timestamp: new Date().toISOString(),
+                        data: { ...this._cache }
+                    };
+                    await window.__TAURI__.invoke('workspace_write', {
+                        req: {
+                            filename: this.STATE_FILENAME,
+                            content: JSON.stringify(snapshot, null, 2),
+                            subfolder: this.STATE_SUBFOLDER,
+                        }
+                    });
+                } catch (e) {
+                    console.error('ToolboxState: Sync to disk failed', e);
+                }
+            }
+
+            this._isSyncing = false;
+            this._syncTimer = null;
+
+            // If a sync was requested while we were busy, do it now
+            if (this._pendingSync) {
+                this.sync();
+            }
+        }, 500); // 500ms debounce
     },
 
     /** Save a value under a namespaced key */

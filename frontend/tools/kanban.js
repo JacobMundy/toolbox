@@ -56,7 +56,7 @@
     background: radial-gradient(circle at top right, rgba(var(--accent-rgb), 0.03), transparent 40%);
 }
 .kanban-column {
-    width: 280px; flex-shrink: 0; display: flex; flex-direction: column;
+    flex: 1; min-width: 200px; display: flex; flex-direction: column;
     background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border);
     border-radius: var(--r-md); max-height: 100%;
 }
@@ -89,19 +89,35 @@
 .kanban-card:hover { border-color: var(--accent-glow); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 .kanban-card.sortable-ghost { opacity: 0.4; border: 1px dashed var(--accent); }
 
-.kb-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
-.kb-tag { font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; color: #fff; }
+.kb-card-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; outline: none; }
+.kb-card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px; opacity: 0.8; }
 
-.kb-card-content { font-size: 13px; color: var(--text-primary); line-height: 1.4; margin-bottom: 8px; word-break: break-word; }
+.kb-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; margin-bottom: 8px; }
+.kb-tag { 
+    font-size: 9px; font-weight: 600; text-transform: uppercase; 
+    padding: 1px 6px; border-radius: 4px; color: var(--text-primary);
+    background: var(--tag-bg, rgba(255,255,255,0.05));
+    border: 1px solid var(--tag-border, rgba(255,255,255,0.1));
+    opacity: 0.8;
+}
 
-.kb-card-footer { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
-.kb-priority { width: 4px; height: 12px; border-radius: 2px; }
-.prio-high { background: var(--error); box-shadow: 0 0 6px rgba(248,113,113,0.4); }
-.prio-med { background: var(--warning); }
-.prio-low { background: var(--success); }
+.kb-card-footer { 
+    display: flex; align-items: center; justify-content: space-between; 
+    padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05);
+    margin-top: 4px;
+}
+.kb-card-meta { font-size: 9px; color: var(--text-muted); display: flex; flex-direction: column; gap: 1px; }
 
-.kb-stats { display: flex; gap: 8px; }
-.kb-stat { display: flex; align-items: center; gap: 3px; }
+.kb-priority-pill { 
+    position: absolute; top: 12px; right: 12px; 
+    width: 8px; height: 8px; border-radius: 50%;
+}
+.prio-high { background: var(--error); box-shadow: 0 0 8px var(--error); }
+.prio-med { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
+.prio-low { background: var(--success); box-shadow: 0 0 8px var(--success); }
+
+.kb-stats { display: flex; gap: 8px; align-items: center; }
+.kb-stat { display: flex; align-items: center; gap: 3px; font-size: 10px; color: var(--text-muted); }
 
 /* ── Modal ───────────────────────────────────── */
 .kb-modal-overlay {
@@ -157,6 +173,40 @@
 .kb-subtask-check { appearance: none; width: 16px; height: 16px; border: 2px solid var(--glass-border); border-radius: 4px; cursor: pointer; position: relative; }
 .kb-subtask-check:checked { background: var(--accent); border-color: var(--accent); }
 .kb-subtask-check:checked::after { content: '✓'; position: absolute; top: -2px; left: 2px; color: #fff; font-size: 11px; font-weight: 700; }
+
+.kb-tag-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.kb-tag-chip {
+    padding: 4px 10px; border-radius: var(--r-sm); font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: all .15s; border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.03); color: var(--text-secondary);
+    user-select: none;
+}
+.kb-tag-chip:hover { border-color: var(--accent-glow); color: var(--text-primary); }
+.kb-tag-chip.active { background: var(--tag-bg); border-color: var(--tag-border); color: #fff; }
+
+.kb-tag-manage { margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--glass-border); }
+.kb-tag-manage-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.kb-tag-color-preview { width: 20px; height: 20px; border-radius: 4px; flex-shrink: 0; }
+
+/* Card Subtasks */
+.kb-card-subtasks { margin-top: 10px; border-top: 1px solid var(--glass-border); padding-top: 8px; }
+.kb-card-subtask { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.kb-card-subtask-input { 
+    background: transparent; border: none; color: var(--text-secondary); 
+    font-size: 11px; flex: 1; outline: none; padding: 2px 0;
+}
+.kb-card-subtask-input:focus { color: var(--text-primary); }
+.kb-card-subtask-input::placeholder { color: var(--text-muted); opacity: 0.5; }
+
+.kb-card-title[contenteditable="true"]:empty:before {
+    content: "Untitled Task";
+    color: var(--text-muted);
+    opacity: 0.5;
+    pointer-events: none;
+    display: block;
+}
+
+.kb-card-meta { font-size: 9px; color: var(--text-muted); margin-top: 4px; display: flex; gap: 8px; }
 `;
     document.head.appendChild(STYLE);
 
@@ -179,6 +229,11 @@
                     {
                         id: Date.now(),
                         name: 'My Project',
+                        tags: [
+                            { name: 'Bug', color: '#f87171' },
+                            { name: 'Feature', color: '#3b82f6' },
+                            { name: 'Design', color: '#a78bfa' }
+                        ],
                         columns: [
                             { id: 1, name: 'To Do', tasks: [] },
                             { id: 2, name: 'In Progress', tasks: [] },
@@ -194,6 +249,14 @@
                 const saved = JSON.parse(localStorage.getItem(LS_KEY));
                 if (saved && saved.boards && saved.boards.length) {
                     state = saved;
+                    // Migration: ensure tags exist
+                    state.boards.forEach(b => {
+                        if (!b.tags) b.tags = [
+                            { name: 'Bug', color: '#f87171' },
+                            { name: 'Feature', color: '#3b82f6' },
+                            { name: 'Design', color: '#a78bfa' }
+                        ];
+                    });
                 }
                 if (!state.activeBoardId) state.activeBoardId = state.boards[0].id;
             } catch (e) {}
@@ -227,11 +290,15 @@
                             </div>
                             <div class="kb-modal-body">
                                 <div class="kb-input-group">
-                                    <label class="kb-label">Content</label>
-                                    <textarea class="kb-input kb-textarea" id="kb-task-content-${windowId}" placeholder="What needs to be done?"></textarea>
+                                    <label class="label">Task Title</label>
+                                    <input type="text" class="input" id="kb-task-title-${windowId}" placeholder="Enter title...">
                                 </div>
                                 <div class="kb-input-group">
-                                    <label class="kb-label">Priority</label>
+                                    <label class="label">Description (Optional)</label>
+                                    <textarea class="textarea" id="kb-task-desc-${windowId}" placeholder="Detailed description..."></textarea>
+                                </div>
+                                <div class="kb-input-group">
+                                    <label class="label">Priority</label>
                                     <div class="kb-prio-picker">
                                         <div class="kb-prio-opt low" data-prio="low">Low</div>
                                         <div class="kb-prio-opt med" data-prio="med">Medium</div>
@@ -239,13 +306,24 @@
                                     </div>
                                 </div>
                                 <div class="kb-input-group">
-                                    <label class="kb-label">Tags (comma separated)</label>
-                                    <input type="text" class="kb-input" id="kb-task-tags-${windowId}" placeholder="Design, Feature, Bug...">
+                                    <label class="label">Tags</label>
+                                    <div class="kb-tag-picker" id="kb-tag-picker-${windowId}"></div>
+                                    
+                                    <!-- Tag Management -->
+                                    <div class="kb-tag-manage">
+                                        <div class="label" style="font-size: 10px; margin-bottom: 10px;">Board Tags</div>
+                                        <div id="kb-tag-manage-list-${windowId}"></div>
+                                        <div class="kb-tag-manage-item" style="margin-top: 10px;">
+                                            <input type="text" class="input" id="kb-new-tag-name-${windowId}" placeholder="New tag..." style="font-size: 11px; padding: 4px 8px;">
+                                            <input type="color" class="tm-custom-color" id="kb-new-tag-color-${windowId}" value="#3b82f6">
+                                            <button class="btn btn-sm" id="kb-add-tag-btn-${windowId}">Add</button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="kb-input-group">
-                                    <label class="kb-label">Subtasks</label>
-                                    <div id="kb-subtasks-list-${windowId}"></div>
-                                    <button class="btn-task-add" id="kb-add-subtask-${windowId}" style="margin-top: 8px;">+ Add Subtask</button>
+                                    <label class="label">Subtasks</label>
+                                    <div id="kb-modal-subtasks-${windowId}" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                                    <button class="btn btn-sm btn-accent" style="margin-top: 10px; align-self: flex-start;" id="kb-add-subtask-${windowId}">+ Add Subtask</button>
                                 </div>
                             </div>
                             <div class="kb-modal-footer">
@@ -265,9 +343,9 @@
             
             // Modal Elements
             const modalOverlay = container.querySelector(`#kb-modal-overlay-${windowId}`);
-            const modalContent = container.querySelector(`#kb-task-content-${windowId}`);
-            const modalTags = container.querySelector(`#kb-task-tags-${windowId}`);
-            const modalSubtasks = container.querySelector(`#kb-subtasks-list-${windowId}`);
+            const modalTitle = container.querySelector(`#kb-task-title-${windowId}`);
+            const modalDesc = container.querySelector(`#kb-task-desc-${windowId}`);
+            const modalSubtasks = container.querySelector(`#kb-modal-subtasks-${windowId}`);
             const modalPrioOpts = container.querySelectorAll('.kb-prio-opt');
             let currentEditingTask = null; // { boardId, colId, taskId }
 
@@ -308,7 +386,7 @@
                             <span class="kanban-task-count">${col.tasks.length}</span>
                         </div>
                         <div class="kanban-task-list" data-id="${col.id}">
-                            ${col.tasks.map(t => renderTask(t, col.id)).join('')}
+                            ${col.tasks.map(t => renderTask(t, col.id, board)).join('')}
                         </div>
                         <div class="kanban-task-add">
                             <button class="btn-task-add" data-col="${col.id}">+ Add Task</button>
@@ -371,12 +449,16 @@
                     btn.onclick = () => {
                         const colId = +btn.dataset.col;
                         const col = board.columns.find(c => c.id === colId);
+                        const now = new Date().toISOString();
                         const newTask = {
                             id: Date.now(),
-                            content: 'New Task',
+                            title: '', 
+                            description: '',
                             priority: 'low',
                             tags: [],
-                            subtasks: []
+                            subtasks: [],
+                            createdAt: now,
+                            modifiedAt: now
                         };
                         col.tasks.push(newTask);
                         save();
@@ -387,25 +469,51 @@
 
                 // Bind task clicks
                 boardViewEl.querySelectorAll('.kanban-card').forEach(card => {
-                    card.onclick = () => {
+                    card.onclick = (e) => {
+                        if (e.target.tagName === 'INPUT' || e.target.hasAttribute('contenteditable')) return;
                         const taskId = +card.dataset.id;
                         const colId = +card.dataset.col;
                         openTaskModal(board.id, colId, taskId);
                     };
                 });
+
+                bindCardEvents();
             }
 
-            function renderTask(t, colId) {
-                const tagHtml = t.tags.map(tag => `<span class="kb-tag" style="background:${getTagColor(tag)}">${escape(tag)}</span>`).join('');
+            function renderTask(t, colId, board) {
+                const tagHtml = (t.tags || []).map(tag => {
+                    const color = getTagColor(tag, board);
+                    // If color is hex, we can't easily replace. We'll use it as is or handle it.
+                    const border = color.startsWith('rgba') ? color.replace('0.2)', '0.4)') : color;
+                    return `<span class="kb-tag" style="--tag-bg:${color}; --tag-border:${border}">${escape(tag)}</span>`;
+                }).join('');
                 const doneCount = t.subtasks ? t.subtasks.filter(s => s.done).length : 0;
                 const totalCount = t.subtasks ? t.subtasks.length : 0;
-                
+                const createdAt = t.createdAt ? new Date(t.createdAt).toLocaleDateString(undefined, { month:'short', day:'numeric' }) : '';
+                const modifiedAt = t.modifiedAt ? new Date(t.modifiedAt).toLocaleDateString(undefined, { month:'short', day:'numeric' }) : '';
+
+                const subtasksHtml = (t.subtasks || []).map((s, i) => `
+                    <div class="kb-card-subtask" data-idx="${i}">
+                        <input type="checkbox" class="kb-subtask-check" ${s.done ? 'checked' : ''} data-idx="${i}" style="width: 14px; height: 14px;">
+                        <input type="text" class="kb-card-subtask-input" value="${escape(s.text || '')}" data-idx="${i}" placeholder="New subtask...">
+                    </div>
+                `).join('');
+
                 return `
                 <div class="kanban-card" data-id="${t.id}" data-col="${colId}">
+                    <div class="kb-priority-pill prio-${t.priority || 'low'}"></div>
+                    <div class="kb-card-title" contenteditable="true" data-id="${t.id}">${escape(t.title || t.content || '')}</div>
+                    
+                    ${t.description ? `<div class="kb-card-desc">${escape(t.description)}</div>` : ''}
+                    
+                    <div class="kb-card-subtasks">${subtasksHtml}</div>
                     <div class="kb-card-tags">${tagHtml}</div>
-                    <div class="kb-card-content">${escape(t.content)}</div>
+
                     <div class="kb-card-footer">
-                        <div class="kb-priority prio-${t.priority || 'low'}"></div>
+                        <div class="kb-card-meta">
+                            <span>Created: ${createdAt}</span>
+                            ${modifiedAt && modifiedAt !== createdAt ? `<span>Updated: ${modifiedAt}</span>` : ''}
+                        </div>
                         <div class="kb-stats">
                             ${totalCount > 0 ? `
                                 <div class="kb-stat" title="Subtasks">
@@ -418,6 +526,74 @@
                 </div>`;
             }
 
+            // Bind card interactions (contenteditable and subtasks)
+            function bindCardEvents() {
+                boardViewEl.querySelectorAll('.kb-card-title').forEach(el => {
+                    el.onblur = () => {
+                        const taskId = +el.dataset.id;
+                        const task = findTaskById(taskId);
+                        if (task && task.title !== el.textContent) {
+                            task.title = el.textContent;
+                            task.modifiedAt = new Date().toISOString();
+                            save();
+                        }
+                    };
+                    // Prevent drag when clicking content
+                    el.onmousedown = (e) => e.stopPropagation();
+                });
+
+                boardViewEl.querySelectorAll('.kb-card-subtask-input').forEach(el => {
+                    el.onblur = () => {
+                        const card = el.closest('.kanban-card');
+                        const taskId = +card.dataset.id;
+                        const task = findTaskById(taskId);
+                        const idx = +el.dataset.idx;
+                        if (task && task.subtasks[idx].text !== el.value) {
+                            task.subtasks[idx].text = el.value;
+                            task.modifiedAt = new Date().toISOString();
+                            save();
+                        }
+                    };
+                    el.onmousedown = (e) => e.stopPropagation();
+                });
+
+                boardViewEl.querySelectorAll('.kb-subtask-check').forEach(el => {
+                    el.onchange = () => {
+                        const card = el.closest('.kanban-card');
+                        const taskId = +card.dataset.id;
+                        const task = findTaskById(taskId);
+                        const idx = +el.dataset.idx;
+                        if (task) {
+                            task.subtasks[idx].done = el.checked;
+                            task.modifiedAt = new Date().toISOString();
+                            save();
+                            // Update only the stats and item state without full re-render to preserve scroll
+                            const doneCount = task.subtasks.filter(s => s.done).length;
+                            const totalCount = task.subtasks.length;
+                            const statsEl = card.querySelector('.kb-stats');
+                            if (statsEl) {
+                                statsEl.innerHTML = `
+                                    <div class="kb-stat" title="Subtasks">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+                                        <span>${doneCount}/${totalCount}</span>
+                                    </div>
+                                `;
+                            }
+                        }
+                    };
+                });
+            }
+
+            function findTaskById(id) {
+                for (const b of state.boards) {
+                    for (const c of b.columns) {
+                        const t = c.tasks.find(t => t.id === id);
+                        if (t) return t;
+                    }
+                }
+                return null;
+            }
+
             function openTaskModal(boardId, colId, taskId) {
                 const board = state.boards.find(b => b.id === boardId);
                 const col = board.columns.find(c => c.id === colId);
@@ -425,26 +601,98 @@
                 if (!task) return;
 
                 currentEditingTask = { boardId, colId, taskId };
-                modalContent.value = task.content;
-                modalTags.value = task.tags.join(', ');
+                modalTitle.value = task.title || task.content || '';
+                modalDesc.value = task.description || '';
                 
                 // Priority
                 modalPrioOpts.forEach(opt => {
                     opt.classList.toggle('active', opt.dataset.prio === task.priority);
                 });
 
+                renderTagPicker(board, task);
+                renderTagManager(board, task);
                 renderSubtasksInModal(task);
                 modalOverlay.classList.add('open');
+            }
+
+            function renderTagPicker(board, task) {
+                const picker = container.querySelector(`#kb-tag-picker-${windowId}`);
+                picker.innerHTML = board.tags.map(tag => {
+                    const isActive = task.tags.includes(tag.name);
+                    return `
+                        <div class="kb-tag-chip ${isActive ? 'active' : ''}" 
+                             data-name="${tag.name}"
+                             style="${isActive ? `--tag-bg: ${tag.color}; --tag-border: ${tag.color}` : ''}">
+                            ${tag.name}
+                        </div>
+                    `;
+                }).join('');
+
+                picker.querySelectorAll('.kb-tag-chip').forEach(chip => {
+                    chip.onclick = () => {
+                        const name = chip.dataset.name;
+                        if (task.tags.includes(name)) {
+                            task.tags = task.tags.filter(t => t !== name);
+                        } else {
+                            task.tags.push(name);
+                        }
+                        renderTagPicker(board, task);
+                    };
+                });
+            }
+
+            function renderTagManager(board, task) {
+                const list = container.querySelector(`#kb-tag-manage-list-${windowId}`);
+                list.innerHTML = board.tags.map((tag, i) => `
+                    <div class="kb-tag-manage-item">
+                        <div class="kb-tag-color-preview" style="background: ${tag.color}"></div>
+                        <span style="font-size: 11px; flex: 1;">${tag.name}</span>
+                        <button class="btn btn-sm btn-icon" style="border:none" data-act="del-tag" data-idx="${i}">✕</button>
+                    </div>
+                `).join('');
+
+                list.querySelectorAll('[data-act="del-tag"]').forEach(btn => {
+                    btn.onclick = () => {
+                        const idx = +btn.dataset.idx;
+                        const tagName = board.tags[idx].name;
+                        board.tags.splice(idx, 1);
+                        // Clean up tasks that have this tag
+                        board.columns.forEach(c => c.tasks.forEach(t => {
+                            t.tags = t.tags.filter(tag => tag !== tagName);
+                        }));
+                        save();
+                        renderTagManager(board, task);
+                        renderTagPicker(board, task);
+                    };
+                });
+
+                const addBtn = container.querySelector(`#kb-add-tag-btn-${windowId}`);
+                const nameInp = container.querySelector(`#kb-new-tag-name-${windowId}`);
+                const colorInp = container.querySelector(`#kb-new-tag-color-${windowId}`);
+
+                addBtn.onclick = () => {
+                    const name = nameInp.value.trim();
+                    if (!name) return;
+                    if (board.tags.find(t => t.name === name)) return;
+                    
+                    board.tags.push({ name, color: colorInp.value });
+                    nameInp.value = '';
+                    save();
+                    renderTagManager(board, task);
+                    renderTagPicker(board, task);
+                };
             }
 
             function renderSubtasksInModal(task) {
                 modalSubtasks.innerHTML = (task.subtasks || []).map((s, i) => `
                     <div class="kb-subtask-item">
                         <input type="checkbox" class="kb-subtask-check" ${s.done ? 'checked' : ''} data-idx="${i}">
-                        <input type="text" class="kb-input" style="flex:1" value="${escape(s.text)}" data-idx="${i}">
+                        <input type="text" class="kb-input" style="flex:1" value="${escape(s.text || '')}" data-idx="${i}" placeholder="Describe subtask...">
                         <button class="btn btn-sm btn-icon" style="border:none" data-act="del-sub" data-idx="${i}">✕</button>
                     </div>
                 `).join('');
+                
+
 
                 modalSubtasks.querySelectorAll('.kb-subtask-check').forEach(cb => {
                     cb.onchange = () => {
@@ -478,7 +726,7 @@
                 if (!currentEditingTask) return;
                 const task = getActiveTask();
                 if (!task.subtasks) task.subtasks = [];
-                task.subtasks.push({ text: 'New subtask', done: false });
+                task.subtasks.push({ text: '', done: false });
                 renderSubtasksInModal(task);
             };
 
@@ -492,9 +740,10 @@
             container.querySelector(`#kb-task-save-${windowId}`).onclick = () => {
                 if (!currentEditingTask) return;
                 const task = getActiveTask();
-                task.content = modalContent.value;
+                task.title = modalTitle.value;
+                task.description = modalDesc.value;
                 task.priority = container.querySelector('.kb-prio-opt.active').dataset.prio;
-                task.tags = modalTags.value.split(',').map(t => t.trim()).filter(t => t);
+                task.modifiedAt = new Date().toISOString();
                 save();
                 renderBoard();
                 closeTaskModal();
@@ -530,6 +779,11 @@
                 const newBoard = {
                     id: Date.now(),
                     name: 'New Project',
+                    tags: [
+                        { name: 'Bug', color: '#f87171' },
+                        { name: 'Feature', color: '#3b82f6' },
+                        { name: 'Design', color: '#a78bfa' }
+                    ],
                     columns: [
                         { id: 1, name: 'To Do', tasks: [] },
                         { id: 2, name: 'Done', tasks: [] }
@@ -561,8 +815,12 @@
                 return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
             }
 
-            function getTagColor(tag) {
-                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+            function getTagColor(tag, board) {
+                const boardTag = board.tags ? board.tags.find(t => t.name === tag) : null;
+                if (boardTag) return boardTag.color;
+
+                // Fallback subtle hash colors
+                const colors = ['rgba(59,130,246,0.2)', 'rgba(16,185,129,0.2)', 'rgba(245,158,11,0.2)', 'rgba(239,68,68,0.2)', 'rgba(139,92,246,0.2)'];
                 let hash = 0;
                 for (let i = 0; i < tag.length; i++) hash = tag.charCodeAt(i) + ((hash << 5) - hash);
                 return colors[Math.abs(hash) % colors.length];

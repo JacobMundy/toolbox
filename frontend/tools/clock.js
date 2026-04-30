@@ -80,6 +80,21 @@
     background:var(--accent-dim);
 }
 
+/* Switch Toggle UX */
+.switch-group { display: flex; align-items: center; gap: 10px; margin-top: 20px; cursor: pointer; }
+.switch-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+.switch {
+    position: relative; width: 40px; height: 20px;
+    background: var(--bg-input); border: 1px solid var(--glass-border);
+    border-radius: 20px; transition: all 0.3s;
+}
+.switch-handle {
+    position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+    background: var(--text-muted); border-radius: 50%; transition: all 0.3s;
+}
+.switch.active { background: var(--accent-dim); border-color: var(--accent); }
+.switch.active .switch-handle { left: 22px; background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+
 /* Timer inputs */
 .timer-inputs {
     display:flex; gap:8px; align-items:center; margin-bottom:20px;
@@ -438,10 +453,17 @@
                     <button class="clock-tab" data-tab="worklog">📊 Work</button>
                 </div>
 
-                <!-- Clock Panel -->
                 <div class="clock-panel active" id="panel-clock">
                     <div class="time-display" id="clock-time">00:00:00</div>
                     <div class="date-display" id="clock-date"></div>
+                    
+                    <div class="switch-group" id="clock-format-toggle">
+                        <span class="switch-label">24h</span>
+                        <div class="switch" id="clock-switch">
+                            <div class="switch-handle"></div>
+                        </div>
+                        <span class="switch-label">12h</span>
+                    </div>
                 </div>
 
                 <!-- Timer Panel -->
@@ -517,10 +539,28 @@
             // ════════════ CLOCK ════════════
             const clockTime = container.querySelector('#clock-time');
             const clockDate = container.querySelector('#clock-date');
+            const clockFormatToggle = container.querySelector('#clock-format-toggle');
+            const clockSwitch = container.querySelector('#clock-switch');
+            let use12h = lsGet('toolbox_clock_12h') === 'true';
+
+            function updateClockToggleUI() {
+                clockSwitch.classList.toggle('active', use12h);
+            }
+            updateClockToggleUI();
+
+            clockFormatToggle.onclick = () => {
+                use12h = !use12h;
+                lsSet('toolbox_clock_12h', use12h);
+                updateClockToggleUI();
+                updateClock();
+            };
 
             function updateClock() {
                 const now = new Date();
-                clockTime.textContent = now.toLocaleTimeString('en-US', { hour12: false });
+                clockTime.textContent = now.toLocaleTimeString('en-US', { 
+                    hour: '2-digit', minute: '2-digit', second: '2-digit',
+                    hour12: use12h 
+                });
                 clockDate.textContent = now.toLocaleDateString('en-US', {
                     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                 });

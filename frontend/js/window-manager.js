@@ -160,6 +160,14 @@ class WindowManager {
             const prev = this.windows.get(this.activeId);
             if (prev) prev.el.classList.remove('active');
         }
+        
+        // Safeguard: Reset zIndex if it gets too high
+        if (this.zIndex > 100000) {
+            this.zIndex = 100;
+            const sorted = [...this.windows.values()].sort((a,b) => (parseInt(a.el.style.zIndex)||0) - (parseInt(b.el.style.zIndex)||0));
+            sorted.forEach(w => w.el.style.zIndex = this.zIndex++);
+        }
+
         d.el.style.zIndex = this.zIndex++;
         d.el.classList.add('active');
         this.activeId = id;

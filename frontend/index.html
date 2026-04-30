@@ -45,6 +45,7 @@
                 <option value="solidDark">Solid Dark</option>
                 <option value="rounded">Rounded</option>
                 <option value="sharp">Sharp</option>
+                <option value="custom">Custom ✨</option>
             </select>
             <button id="tile-btn" class="nav-btn" title="Tile all windows">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -138,6 +139,7 @@
     <script src="tools/python-interp.js"></script>
     <script src="tools/workspace-browser.js"></script>
     <script src="tools/kanban.js"></script>
+    <script src="tools/theme-settings.js"></script>
 
     <!-- ═══════ Command Palette Init ═══════ -->
     <script>
@@ -190,8 +192,7 @@
             handler: () => ToolboxState.promptImport().then(() => alert('State restored! Refresh tools to apply.')).catch(e => alert('Import failed: ' + e.message)),
         });
 
-        // Auto-save on close
-        ToolboxState.setupAutoSave();
+        // Auto-save is already handled in app.js
     });
     </script>
 </body>
