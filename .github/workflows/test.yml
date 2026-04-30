@@ -1,4 +1,4 @@
-name: Playwright Tests
+name: Toolbox CI/CD
 on:
   push:
     branches: [ main, master ]
@@ -34,6 +34,8 @@ jobs:
   build:
     needs: test
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
     - uses: actions/checkout@v4
 
@@ -58,3 +60,18 @@ jobs:
         name: toolbox-installer-windows
         path: src-tauri/target/release/bundle/**
         retention-days: 30
+
+    - name: Continuous Release
+      uses: softprops/action-gh-release@v2
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      with:
+        tag_name: latest
+        name: "Continuous Build (Latest)"
+        body: "Automated build from the latest push to main. This release is updated automatically."
+        draft: false
+        prerelease: true
+        files: |
+          src-tauri/target/release/bundle/msi/*.msi
+          src-tauri/target/release/bundle/nsis/*.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
