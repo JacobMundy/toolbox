@@ -9,7 +9,7 @@
         id: 'diff-checker',
         name: 'Diff Checker',
         icon: '↔️',
-        description: 'Professional comparison tool for text and code',
+        description: 'Compare text and code',
         tags: ['diff', 'compare', 'text', 'merge', 'changes', 'monaco', 'code'],
         defaultWidth: 1000,
         defaultHeight: 700,

@@ -76,9 +76,9 @@
 
     ToolRegistry.register({
         id: 'redactor',
-        name: 'PII Redactor Pro',
+        name: 'PII Redactor',
         icon: '🔒',
-        description: 'Professional PII redaction with pattern detection and leak reports',
+        description: 'PII redaction tool with pattern detection and leak reports',
         tags: ['redact', 'pii', 'privacy', 'security', 'rust', 'remove', 'names', 'leaks'],
         defaultWidth: 1000,
         defaultHeight: 800,

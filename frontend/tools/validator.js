@@ -31,7 +31,7 @@
         id: 'validator',
         name: 'Data Validator',
         icon: '✅',
-        description: 'Validate and format JSON/CSV data using high-performance Rust logic',
+        description: 'Validate and format JSON/CSV data',
         tags: ['json', 'csv', 'validate', 'format', 'lint', 'beautify'],
         defaultWidth: 900,
         defaultHeight: 600,

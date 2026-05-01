@@ -214,9 +214,9 @@
 
     ToolRegistry.register({
         id: 'kanban',
-        name: 'Kanban Board',
+        name: 'Kanban',
         icon: '📋',
-        description: 'Advanced project management with subtasks, labels, and multiple boards',
+        description: 'Project management with subtasks, labels, and multiple boards',
         tags: ['kanban', 'board', 'tasks', 'todo', 'project', 'management', 'planning', 'cards'],
         defaultWidth: 960,
         defaultHeight: 640,

@@ -187,7 +187,7 @@
         id: 'workspace-browser',
         name: 'Workspace',
         icon: '📂',
-        description: 'Advanced file manager with Quick Access and NAS support',
+        description: 'File explorer with Quick Access and Shared Link support',
         tags: ['workspace', 'files', 'browse', 'folder', 'export', 'backup', 'manager', 'nas', 'pin'],
         defaultWidth: 840,
         defaultHeight: 560,

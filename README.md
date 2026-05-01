@@ -10,13 +10,18 @@ I have only tested the application and building it on Windows 11.
 
 It works on my machine ¯\\\_(ツ)_/¯
 
-
+* [Images](#images)
 * [Current Tools](#current-tools)
 * [Build Steps](#build-steps)
 * [Testing](#testing)
 * [Architecture](#architecture)
 * [To do](#todo)
-  
+
+## Images
+[Desktop with Clock app open](img/Desktop.png)
+[Notepad app with text file opened from the workspace browser](img/NotepadAndWorkspace.png)
+[Testing python Interpreter with fibonacci sequence and confirming the results using the Calculator](img/PythonInterpreterAndCalculator.png)
+
 ## Current Tools
 * **Workspace Browser:** Simple file management inside a specified folder with the option to pin folders from local and network drives
 * **Python Interpreter:** An interpreter that uses either a local python instance or a pyodide instance if one isn't found

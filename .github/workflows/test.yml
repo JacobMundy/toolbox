@@ -2,8 +2,14 @@ name: Toolbox CI/CD
 on:
   push:
     branches: [ main, master ]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - 'LICENSE'
   pull_request:
     branches: [ main, master ]
+    paths-ignore:
+      - '**.md'
 jobs:
   test:
     timeout-minutes: 60

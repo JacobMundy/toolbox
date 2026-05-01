@@ -109,22 +109,22 @@ async fn drag_file(window: tauri::Window, filename: String, subfolder: Option<St
 }
 
 #[tauri::command]
-fn redact_pii(req: RedactRequest) -> commands::redactor::RedactResult {
+async fn redact_pii(req: RedactRequest) -> commands::redactor::RedactResult {
     commands::redactor::run_redaction(req)
 }
 
 #[tauri::command]
-fn validate_data(req: ValidateRequest) -> ValidateResult {
+async fn validate_data(req: ValidateRequest) -> ValidateResult {
     commands::validator::validate_data(req)
 }
 
 #[tauri::command]
-fn get_diff(req: DiffRequest) -> DiffResult {
+async fn get_diff(req: DiffRequest) -> DiffResult {
     commands::diff::compare_text(req)
 }
 
 #[tauri::command]
-fn run_python(code: String) -> PythonResult {
+async fn run_python(code: String) -> PythonResult {
     commands::python::execute_python(PythonRequest { code })
 }
 
