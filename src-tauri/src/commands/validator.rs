@@ -13,6 +13,7 @@ pub struct ValidateRequest {
 pub struct ValidateResult {
     pub is_valid: bool,
     pub output: String,
+    pub data: Option<Value>,
     pub error: Option<String>,
     pub line: Option<usize>,
     pub col: Option<usize>,
@@ -25,6 +26,7 @@ pub fn validate_data(req: ValidateRequest) -> ValidateResult {
         _ => ValidateResult {
             is_valid: false,
             output: String::new(),
+            data: None,
             error: Some("Unsupported format".into()),
             line: None,
             col: None,
@@ -37,6 +39,7 @@ fn validate_json(text: &str) -> ValidateResult {
         Ok(v) => ValidateResult {
             is_valid: true,
             output: serde_json::to_string_pretty(&v).unwrap_or_else(|_| text.into()),
+            data: Some(v),
             error: None,
             line: None,
             col: None,
@@ -45,6 +48,7 @@ fn validate_json(text: &str) -> ValidateResult {
             ValidateResult {
                 is_valid: false,
                 output: String::new(),
+                data: None,
                 error: Some(e.to_string()),
                 line: Some(e.line()),
                 col: Some(e.column()),
@@ -55,18 +59,40 @@ fn validate_json(text: &str) -> ValidateResult {
 
 fn validate_csv(text: &str) -> ValidateResult {
     let mut reader = ReaderBuilder::new()
-        .flexible(false) // Strict by default
+        .flexible(true) // Allow flexible for table viewing
         .from_reader(Cursor::new(text));
     
-    let mut count = 0;
+    let mut rows = Vec::new();
+    let headers = match reader.headers() {
+        Ok(h) => h.iter().map(|s| s.to_string()).collect::<Vec<String>>(),
+        Err(e) => {
+            return ValidateResult {
+                is_valid: false,
+                output: String::new(),
+                data: None,
+                error: Some(format!("CSV Header Error: {}", e)),
+                line: None,
+                col: None,
+            };
+        }
+    };
+
     for result in reader.records() {
         match result {
-            Ok(_) => count += 1,
+            Ok(record) => {
+                let mut row = serde_json::Map::new();
+                for (i, field) in record.iter().enumerate() {
+                    let header = headers.get(i).cloned().unwrap_or_else(|| format!("column_{}", i));
+                    row.insert(header, Value::String(field.to_string()));
+                }
+                rows.push(Value::Object(row));
+            }
             Err(e) => {
                 let pos = e.position();
                 return ValidateResult {
                     is_valid: false,
                     output: String::new(),
+                    data: None,
                     error: Some(format!("CSV Error: {}", e)),
                     line: pos.map(|p| p.line() as usize),
                     col: None,
@@ -77,7 +103,8 @@ fn validate_csv(text: &str) -> ValidateResult {
     
     ValidateResult {
         is_valid: true,
-        output: format!("CSV is valid. Processed {} records.", count),
+        output: format!("CSV is valid. Processed {} records.", rows.len()),
+        data: Some(Value::Array(rows)),
         error: None,
         line: None,
         col: None,

@@ -56,9 +56,9 @@
     background: radial-gradient(circle at top right, rgba(var(--accent-rgb), 0.03), transparent 40%);
 }
 .kanban-column {
-    flex: 1; min-width: 200px; display: flex; flex-direction: column;
+    flex: 0 0 300px; display: flex; flex-direction: column;
     background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border);
-    border-radius: var(--r-md); max-height: 100%;
+    border-radius: var(--r-md); height: 100%; min-height: 0;
 }
 .kanban-column-header {
     padding: 12px 14px; display: flex; align-items: center; justify-content: space-between;
@@ -89,8 +89,12 @@
 .kanban-card:hover { border-color: var(--accent-glow); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 .kanban-card.sortable-ghost { opacity: 0.4; border: 1px dashed var(--accent); }
 
-.kb-card-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; outline: none; }
-.kb-card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px; opacity: 0.8; }
+.kb-card-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; outline: none; word-break: break-word; }
+.kb-card-desc { 
+    font-size: 12px; color: var(--text-secondary); line-height: 1.4; 
+    margin-bottom: 10px; opacity: 0.8; 
+    max-height: 100px; overflow-y: auto; word-break: break-word;
+}
 
 .kb-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; margin-bottom: 8px; }
 .kb-tag { 
@@ -129,26 +133,31 @@
 .kb-modal-overlay.open { opacity: 1; pointer-events: auto; }
 .kb-modal {
     background: var(--bg-primary); border: 1px solid var(--glass-border);
-    border-radius: var(--r-lg); width: 480px; max-width: 90%;
+    border-radius: var(--r-lg); width: 440px; max-width: 95%;
+    max-height: 90%; min-height: 0;
     box-shadow: var(--shadow-lg); overflow: hidden;
+    display: flex; flex-direction: column;
     transform: translateY(20px); transition: transform .3s var(--ease-out);
 }
 .kb-modal-overlay.open .kb-modal { transform: translateY(0); }
 
 .kb-modal-header {
-    padding: 16px 20px; border-bottom: 1px solid var(--glass-border);
+    padding: 12px 16px; border-bottom: 1px solid var(--glass-border);
     display: flex; justify-content: space-between; align-items: center;
     background: rgba(255,255,255,0.02);
 }
-.kb-modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.kb-modal-body { 
+    padding: 16px; display: flex; flex-direction: column; gap: 12px; 
+    overflow-y: auto; flex: 1; min-height: 0;
+}
 .kb-modal-footer {
-    padding: 14px 20px; border-top: 1px solid var(--glass-border);
+    padding: 10px 16px; border-top: 1px solid var(--glass-border);
     display: flex; justify-content: flex-end; gap: 10px;
-    background: rgba(0,0,0,0.1);
+    background: rgba(0,0,0,0.2); flex-shrink: 0;
 }
 
-.kb-input-group { display: flex; flex-direction: column; gap: 6px; }
-.kb-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+.kb-input-group { display: flex; flex-direction: column; gap: 4px; }
+.kb-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 .kb-input {
     background: var(--bg-input); border: 1px solid var(--glass-border);
     border-radius: var(--r-sm); color: var(--text-primary);
@@ -368,6 +377,7 @@
                             return;
                         }
                         state.activeBoardId = +el.dataset.id;
+                        closeTaskModal();
                         save();
                         render();
                     };
@@ -716,9 +726,21 @@
             }
 
             function closeTaskModal() {
+                if (!modalOverlay.classList.contains('open')) return;
                 modalOverlay.classList.remove('open');
                 currentEditingTask = null;
             }
+
+            // Bind Dismissal Events
+            modalOverlay.onclick = (e) => {
+                if (e.target === modalOverlay) closeTaskModal();
+            };
+
+            const handleEsc = (e) => {
+                if (e.key === 'Escape') closeTaskModal();
+            };
+            window.addEventListener('keydown', handleEsc);
+
 
             // Bind Modal Actions
             container.querySelector(`#kb-modal-close-${windowId}`).onclick = closeTaskModal;
@@ -825,6 +847,9 @@
                 for (let i = 0; i < tag.length; i++) hash = tag.charCodeAt(i) + ((hash << 5) - hash);
                 return colors[Math.abs(hash) % colors.length];
             }
+            return () => {
+                window.removeEventListener('keydown', handleEsc);
+            };
         }
     });
 })();
