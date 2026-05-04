@@ -18,9 +18,9 @@ It works on my machine ¯\\\_(ツ)_/¯
 * [To do](#todo)
 
 ## Images
-[Desktop with Clock app open](img/Desktop.png)
-[Notepad app with text file opened from the workspace browser](img/NotepadAndWorkspace.png)
-[Testing python Interpreter with fibonacci sequence and confirming the results using the Calculator](img/PythonInterpreterAndCalculator.png)
+![Desktop with Clock app open](img/Desktop.png)
+![Notepad app with text file opened from the workspace browser](img/NotepadAndWorkspace.png)
+![Testing python Interpreter with fibonacci sequence and confirming the results using the Calculator](img/PythonAndCalc.png)
 
 ## Current Tools
 * **Workspace Browser:** Simple file management inside a specified folder with the option to pin folders from local and network drives
