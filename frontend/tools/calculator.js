@@ -151,12 +151,14 @@
             container.innerHTML = `
             <div class="calc">
                 <div class="calc-main">
-                    <div class="calc-display">
                         <div class="calc-display-top">
-                            <button class="calc-hist-toggle" id="calc-ht" title="History">🕘</button>
+                            <div style="display:flex; gap:4px;">
+                                <button class="calc-hist-toggle" id="calc-ht" title="History">🕘</button>
+                                <button class="calc-hist-toggle" id="calc-copy" title="Copy Result">📋</button>
+                            </div>
                             <div class="calc-expr" id="calc-expr"></div>
                         </div>
-                        <input type="text" class="calc-input" id="calc-res" value="0" spellcheck="false" autocomplete="off">
+                        <input type="text" class="calc-input" id="calc-res" value="0" spellcheck="false" autocomplete="off" title="Type your expression here">
                     </div>
                     <div class="calc-mode-bar">
                         <button class="calc-mode-btn active" data-mode="standard">Standard</button>
@@ -295,7 +297,7 @@
 
             function evaluate(raw) {
                 if (!raw) return undefined;
-                let s = raw
+                let s = raw.toString().replace(/,/g, '') // Strip commas from formatting
                     .replace(/×/g, '*')
                     .replace(/÷/g, '/')
                     .replace(/−/g, '-')
@@ -309,12 +311,14 @@
                     .replace(/√\(/g, 'Math.sqrt(')
                     .replace(/abs\(/g, 'Math.abs(')
                     .replace(/²/g, '**2')
-                    .replace(/\^/g, '**')
-                    .replace(/!/g, ''); // Handled manually or skipped in basic eval
+                    .replace(/\^/g, '**');
 
-                // Validate (extended for Math. calls)
-                if (!/^[\d+\-*/.() %eMath.sincotalgqrb0-9,]+$/i.test(s)) throw new Error('Invalid');
-                return new Function('return ' + s)();
+                // Handle factorials (simple version: find numbers or parenthesized groups followed by !)
+                s = s.replace(/(\d+(\.\d+)?|(\([^)]+\)))!/g, 'factorial($1)');
+
+                // Validate (allowing Math functions and our factorial helper)
+                if (!/^[\d+\-*/.() %eMath.sincotalgqrb0-9f]+$/i.test(s)) throw new Error('Invalid');
+                return new Function('factorial', 'return ' + s)(factorial);
             }
 
             // Input handling
@@ -408,13 +412,33 @@
             resEl.addEventListener('input', () => {
                 justEvaluated = false;
                 resEl.classList.remove('error');
+                
+                // If the user typed something and it starts with a leading zero (not 0.), strip it
+                if (resEl.value.length > 1 && resEl.value.startsWith('0') && resEl.value[1] !== '.' && !['+','-','*','/','×','÷','−'].includes(resEl.value[1])) {
+                    const pos = resEl.selectionStart;
+                    resEl.value = resEl.value.substring(1);
+                    resEl.setSelectionRange(pos - 1, pos - 1);
+                }
+                
                 updateDisplay();
             });
             
+            resEl.addEventListener('focus', () => {
+                // When focused, if it's just '0', select it so the next char replaces it
+                if (resEl.value === '0') {
+                    resEl.select();
+                }
+            });
+
             resEl.addEventListener('keydown', e => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     press('=');
+                }
+                // If it's just '0' and a digit is pressed, replace it immediately
+                if (resEl.value === '0' && /^[0-9]$/.test(e.key)) {
+                    // Let the default happen but we'll clear it first
+                    resEl.value = '';
                 }
             });
 
@@ -454,6 +478,19 @@
                 history = [];
                 saveHistory();
                 renderHistory();
+            });
+
+            // Copy result
+            container.querySelector('#calc-copy').addEventListener('click', () => {
+                const val = resEl.value;
+                if (!val || val === 'Error') return;
+                
+                navigator.clipboard.writeText(val).then(() => {
+                    const btn = container.querySelector('#calc-copy');
+                    const oldIcon = btn.textContent;
+                    btn.textContent = '✅';
+                    setTimeout(() => btn.textContent = oldIcon, 1000);
+                });
             });
 
             updateDisplay();

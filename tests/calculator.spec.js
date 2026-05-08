@@ -39,7 +39,7 @@ test.describe('Calculator Tool', () => {
     await calc.locator('button[data-val="="]').click();
     
     // 6. Verify result
-    const result = await calc.locator('#calc-res').innerText();
+    const result = await calc.locator('#calc-res').inputValue();
     expect(result).toBe('56');
   });
 
@@ -51,14 +51,18 @@ test.describe('Calculator Tool', () => {
     // Switch to Scientific mode
     await calc.locator('button[data-mode="scientific"]').click();
     
+    // Clear state
+    await calc.locator('button[data-val="C"]').click();
+
     // Calculate √64
+    // The new calculator uses standard equation input, so we click √ which inserts "√("
     await calc.locator('button[data-val="√"]').click();
     await calc.locator('button[data-val="6"]').click();
     await calc.locator('button[data-val="4"]').click();
     await calc.locator('button[data-val=")"]').click();
     await calc.locator('button[data-val="="]').click();
     
-    const result = await calc.locator('#calc-res').innerText();
+    const result = await calc.locator('#calc-res').inputValue();
     expect(result).toBe('8');
   });
 });
