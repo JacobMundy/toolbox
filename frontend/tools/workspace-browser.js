@@ -105,11 +105,20 @@
     text-transform:uppercase; letter-spacing:.08em;
 }
 .ws-preview-content {
-    flex:1; overflow:auto; padding:12px 16px;
+    flex:1; overflow:auto; padding:0;
     font-family:'JetBrains Mono',monospace; font-size:12px;
-    white-space:pre-wrap; color:var(--text-secondary);
-    line-height:1.5;
+    color:var(--text-secondary);
 }
+.ws-monaco-container { flex:1; min-height:0; }
+.ws-monaco-container .monaco-editor,
+.ws-monaco-container .monaco-editor-background,
+.ws-monaco-container .monaco-editor .margin {
+    background: transparent !important;
+}
+.ws-monaco-container .monaco-editor .line-numbers {
+    color: var(--text-muted) !important;
+}
+
 
 /* Status bar */
 .ws-status {
@@ -234,7 +243,7 @@
                             <button class="btn btn-sm" id="ws-preview-close">✕</button>
                         </div>
                     </div>
-                    <div class="ws-preview-content" id="ws-preview-content"></div>
+                    <div class="ws-preview-content ws-monaco-container" id="ws-preview-content"></div>
                 </div>
                 <div class="ws-status" id="ws-status">
                     <span id="ws-status-text">Ready</span>
@@ -264,6 +273,8 @@
             let selectedFile = null;
             let isAppData = false;
             let pins = [];
+            let monacoEditor = null;
+            let monacoInstance = null;
 
             // Global safety fallback for ghost drags
             document.addEventListener('mousedown', () => { window.__ws_dragging = null; }, true);
@@ -698,21 +709,82 @@
                 previewTitle.textContent = name;
                 previewPanel.classList.add('open');
                 
+                if (!monacoEditor) {
+                    await initMonaco();
+                }
+
                 if (content !== undefined) {
-                    previewContent.textContent = content;
+                    updateMonaco(name, content);
                     return;
                 }
 
-                previewContent.textContent = 'Reading…';
+                updateMonaco(name, 'Reading…');
                 try {
                     const subfolder = currentPath.length > 0 ? currentPath.join('/') : null;
                     const res = await window.__TAURI__.invoke('workspace_read', {
                         req: { filename: name, subfolder }
                     });
-                    if (res.success) previewContent.textContent = res.content;
-                    else previewContent.textContent = 'Error: ' + res.error;
+                    if (res.success) updateMonaco(name, res.content);
+                    else updateMonaco(name, 'Error: ' + res.error);
                 } catch (e) {
-                    previewContent.textContent = 'Error: ' + e;
+                    updateMonaco(name, 'Error: ' + e);
+                }
+            }
+
+            function updateMonaco(filename, content) {
+                if (!monacoEditor || !monacoInstance) return;
+                const lang = getMonacoLang(filename);
+                const model = monacoInstance.editor.createModel(content, lang);
+                const oldModel = monacoEditor.getModel();
+                monacoEditor.setModel(model);
+                if (oldModel) oldModel.dispose();
+            }
+
+            function getMonacoLang(name) {
+                const ext = name.split('.').pop().toLowerCase();
+                const map = {
+                    js: 'javascript', ts: 'typescript', py: 'python',
+                    md: 'markdown', html: 'html', css: 'css',
+                    json: 'json', xml: 'xml', sql: 'sql',
+                    sh: 'shell', yaml: 'yaml', yml: 'yaml'
+                };
+                return map[ext] || 'plaintext';
+            }
+
+            let monacoLoading = false;
+            async function initMonaco() {
+                if (monacoEditor || monacoLoading) return;
+                monacoLoading = true;
+                try {
+                    const monaco = await window.loadMonaco();
+                    monacoInstance = monaco;
+                    
+                    monacoEditor = monaco.editor.create(previewContent, {
+                        theme: 'vs-dark',
+                        automaticLayout: true,
+                        readOnly: true,
+                        fontSize: 12,
+                        fontFamily: "'JetBrains Mono', monospace",
+                        minimap: { enabled: false },
+                        wordWrap: 'on',
+                        scrollBeyondLastLine: false,
+                        padding: { top: 8, bottom: 8 },
+                        backgroundColor: '#00000000'
+                    });
+
+                    // Match Notepad's transparent theme if possible, or just use vs-dark
+                    monaco.editor.defineTheme('ws-transparent', {
+                        base: 'vs-dark',
+                        inherit: true,
+                        rules: [],
+                        colors: {
+                            'editor.background': '#00000000',
+                            'editorGutter.background': '#00000000'
+                        }
+                    });
+                    monacoEditor.updateOptions({ theme: 'ws-transparent' });
+                } catch (e) {
+                    previewContent.innerHTML = `<div style="padding:20px; color:var(--error)">Failed to load Monaco: ${e.message}</div>`;
                 }
             }
 
@@ -922,6 +994,17 @@
 
             loadPins();
             loadFiles();
+
+            return {
+                cleanup: () => {
+                    document.removeEventListener('mousedown', () => { window.__ws_dragging = null; }, true);
+                    if (monacoEditor) {
+                        const model = monacoEditor.getModel();
+                        if (model) model.dispose();
+                        monacoEditor.dispose();
+                    }
+                }
+            };
         }
     });
 })();

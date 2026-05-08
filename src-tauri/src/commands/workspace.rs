@@ -38,7 +38,11 @@ pub struct WriteFileRequest {
     pub content: Option<String>,
 }
 
-pub type WriteFileResult = Result<(), String>;
+#[derive(Serialize)]
+pub struct WriteFileResult {
+    pub success: bool,
+    pub error: Option<String>,
+}
 
 #[derive(Deserialize)]
 pub struct MoveRequest {
@@ -156,9 +160,15 @@ pub fn read_workspace_file(req: ReadFileRequest) -> ReadFileResult {
 }
 
 pub fn write_workspace_file(req: WriteFileRequest) -> WriteFileResult {
-    let path = resolve_path(Some(req.filename), req.subfolder)?;
+    let path = match resolve_path(Some(req.filename), req.subfolder) {
+        Ok(p) => p,
+        Err(e) => return WriteFileResult { success: false, error: Some(e) },
+    };
     let content = req.content.unwrap_or_default();
-    fs::write(path, content).map_err(|e| e.to_string())
+    match fs::write(path, content) {
+        Ok(_) => WriteFileResult { success: true, error: None },
+        Err(e) => WriteFileResult { success: false, error: Some(e.to_string()) },
+    }
 }
 
 pub fn delete_workspace_item(filename: String, subfolder: Option<String>) -> Result<(), String> {

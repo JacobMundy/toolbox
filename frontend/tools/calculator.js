@@ -26,14 +26,14 @@
     font-family:'JetBrains Mono',monospace;
     flex:1; text-align:right;
 }
-.calc-result {
+.calc-input {
     font-size:36px; font-weight:600; color:var(--text-primary);
     font-family:'JetBrains Mono',monospace;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    margin-top:4px; line-height:1.2;
-    transition:color .15s;
+    width:100%; border:none; outline:none; background:transparent;
+    text-align:right; margin-top:4px; line-height:1.2;
+    transition:color .15s; padding:0;
 }
-.calc-result.error { color:var(--error); font-size:16px; }
+.calc-input.error { color:var(--error); font-size:16px; }
 
 /* Mode toggle */
 .calc-mode-bar {
@@ -156,7 +156,7 @@
                             <button class="calc-hist-toggle" id="calc-ht" title="History">🕘</button>
                             <div class="calc-expr" id="calc-expr"></div>
                         </div>
-                        <div class="calc-result" id="calc-res">0</div>
+                        <input type="text" class="calc-input" id="calc-res" value="0" spellcheck="false" autocomplete="off">
                     </div>
                     <div class="calc-mode-bar">
                         <button class="calc-mode-btn active" data-mode="standard">Standard</button>
@@ -203,7 +203,7 @@
                 hList.querySelectorAll('.calc-hist-item').forEach(el => {
                     el.addEventListener('click', () => {
                         const h = history[+el.dataset.idx];
-                        expr = String(h.result);
+                        resEl.value = String(h.result);
                         updateDisplay();
                     });
                 });
@@ -269,13 +269,11 @@
             function updateDisplay() {
                 exprEl.textContent = '';
                 resEl.classList.remove('error');
-                if (!expr) { resEl.textContent = '0'; return; }
-                resEl.textContent = expr;
-
+                
                 // Live preview
                 try {
-                    const val = evaluate(expr);
-                    if (val !== undefined && !isNaN(val) && isFinite(val)) {
+                    const val = evaluate(resEl.value);
+                    if (val !== undefined && !isNaN(val) && isFinite(val) && String(val) !== resEl.value.trim()) {
                         exprEl.textContent = '= ' + formatNum(val);
                     }
                 } catch {}
@@ -296,6 +294,7 @@
             }
 
             function evaluate(raw) {
+                if (!raw) return undefined;
                 let s = raw
                     .replace(/×/g, '*')
                     .replace(/÷/g, '/')
@@ -308,7 +307,10 @@
                     .replace(/ln\(/g, 'Math.log(')
                     .replace(/log\(/g, 'Math.log10(')
                     .replace(/√\(/g, 'Math.sqrt(')
-                    .replace(/abs\(/g, 'Math.abs(');
+                    .replace(/abs\(/g, 'Math.abs(')
+                    .replace(/²/g, '**2')
+                    .replace(/\^/g, '**')
+                    .replace(/!/g, ''); // Handled manually or skipped in basic eval
 
                 // Validate (extended for Math. calls)
                 if (!/^[\d+\-*/.() %eMath.sincotalgqrb0-9,]+$/i.test(s)) throw new Error('Invalid');
@@ -318,45 +320,46 @@
             // Input handling
             function press(val) {
                 if (val === 'C') {
-                    expr = '';
+                    resEl.value = '';
                     justEvaluated = false;
                     updateDisplay();
+                    resEl.focus();
                     return;
                 }
                 if (val === 'DEL') {
-                    expr = expr.slice(0, -1);
+                    const start = resEl.selectionStart || 0;
+                    const end = resEl.selectionEnd || 0;
+                    const v = resEl.value;
+                    if (start === end && start > 0) {
+                        resEl.value = v.slice(0, start - 1) + v.slice(start);
+                        resEl.setSelectionRange(start - 1, start - 1);
+                    } else if (start !== end) {
+                        resEl.value = v.slice(0, start) + v.slice(end);
+                        resEl.setSelectionRange(start, start);
+                    }
                     justEvaluated = false;
                     updateDisplay();
+                    resEl.focus();
                     return;
                 }
                 if (val === '=') {
                     try {
-                        const result = evaluate(expr);
+                        const currentExpr = resEl.value;
+                        if (!currentExpr) return;
+                        const result = evaluate(currentExpr);
+                        if (result === undefined) return;
                         const display = formatNum(result);
-                        exprEl.textContent = expr + ' =';
-                        resEl.textContent = display;
-                        history.push({ expr, result: display });
+                        exprEl.textContent = currentExpr + ' =';
+                        resEl.value = display;
+                        history.push({ expr: currentExpr, result: display });
                         saveHistory();
                         renderHistory();
-                        expr = display.replace(/,/g, '');
                         justEvaluated = true;
                     } catch {
-                        resEl.textContent = 'Error';
+                        resEl.value = 'Error';
                         resEl.classList.add('error');
                     }
-                    return;
-                }
-                if (val === '±') {
-                    if (!expr) return;
-                    const match = expr.match(/(.*?)(-?[\d.]+)$/);
-                    if (match) {
-                        const prefix = match[1];
-                        const num = match[2];
-                        expr = num.startsWith('-')
-                            ? prefix + num.slice(1)
-                            : prefix + '-' + num;
-                    }
-                    updateDisplay();
+                    resEl.focus();
                     return;
                 }
 
@@ -364,44 +367,56 @@
                 const fnMap = {
                     'sin': 'sin(', 'cos': 'cos(', 'tan': 'tan(',
                     'ln': 'ln(', 'log': 'log(', '√': '√(',
-                    '|x|': 'abs(', 'x²': '²', 'xⁿ': '^(',
-                    'x!': '!', '1/x': '1/(', '%': '/100',
+                    '|x|': 'abs(', 'x²': '²', 'xⁿ': '^',
+                    'x!': '!', '1/x': '1/(', '%': '%',
                     'π': 'π', 'e': 'e',
                 };
 
+                let insertStr = val;
                 if (fnMap[val] !== undefined) {
-                    const mapped = fnMap[val];
-                    if (justEvaluated && /^[a-z√(]/i.test(mapped)) {
-                        // Wrap previous result in function
-                    } else if (justEvaluated) {
-                        // Append to result
+                    insertStr = fnMap[val];
+                }
+
+                if (val === '±') {
+                    insertStr = '-';
+                }
+
+                if (justEvaluated) {
+                    if (/[\d.]/.test(insertStr) || /^[a-z√(]/i.test(insertStr)) {
+                        resEl.value = '';
                     }
                     justEvaluated = false;
+                }
 
-                    if (val === 'x²') {
-                        expr = `(${expr})**2`;
-                    } else if (val === 'x!') {
-                        try {
-                            const n = evaluate(expr);
-                            expr = String(factorial(Math.round(n)));
-                        } catch { expr += '!'; }
-                    } else if (val === 'xⁿ') {
-                        expr += '**';
-                    } else {
-                        expr += mapped;
+                if (resEl.value === 'Error' || resEl.value === '0') {
+                    if (resEl.value === '0' && insertStr !== '.' && !['+','−','×','÷','²','^','%','!'].includes(insertStr)) {
+                        resEl.value = '';
                     }
-                    updateDisplay();
-                    return;
+                    if (resEl.value === 'Error') resEl.value = '';
+                    resEl.classList.remove('error');
                 }
 
-                // If just evaluated & user types a digit, start fresh
-                if (justEvaluated && /[\d.]/.test(val)) {
-                    expr = '';
-                }
-                justEvaluated = false;
-                expr += val;
+                const start = resEl.selectionStart || 0;
+                const end = resEl.selectionEnd || 0;
+                const v = resEl.value;
+                resEl.value = v.substring(0, start) + insertStr + v.substring(end);
+                resEl.setSelectionRange(start + insertStr.length, start + insertStr.length);
                 updateDisplay();
+                resEl.focus();
             }
+
+            resEl.addEventListener('input', () => {
+                justEvaluated = false;
+                resEl.classList.remove('error');
+                updateDisplay();
+            });
+            
+            resEl.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    press('=');
+                }
+            });
 
             grid.addEventListener('click', e => {
                 const btn = e.target.closest('.calc-btn');
@@ -412,7 +427,12 @@
             function onKey(e) {
                 const win = container.closest('.window');
                 if (!win || !win.classList.contains('active')) return;
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                
+                // If focus is inside the input, we only handle global things if we want to, but actually we let it flow.
+                // We'll intercept '=' from keyboard if they are NOT in the input, but if they are in the input, 'Enter' handles it.
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    return;
+                }
 
                 const map = { Enter: '=', Escape: 'C', Backspace: 'DEL',
                               '*': '×', '/': '÷', '-': '−', Delete: 'C' };

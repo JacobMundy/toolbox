@@ -286,6 +286,7 @@
                 <main class="kanban-main">
                     <div class="kanban-toolbar">
                         <div class="kanban-title" id="kb-board-title-${windowId}" contenteditable="true" spellcheck="false"></div>
+                        <button class="btn btn-sm" id="kb-manage-tags-${windowId}">Tags</button>
                         <button class="btn btn-sm" id="kb-add-col-${windowId}">+ Column</button>
                     </div>
                     <div class="kanban-board" id="kb-board-view-${windowId}"></div>
@@ -317,17 +318,6 @@
                                 <div class="kb-input-group">
                                     <label class="label">Tags</label>
                                     <div class="kb-tag-picker" id="kb-tag-picker-${windowId}"></div>
-                                    
-                                    <!-- Tag Management -->
-                                    <div class="kb-tag-manage">
-                                        <div class="label" style="font-size: 10px; margin-bottom: 10px;">Board Tags</div>
-                                        <div id="kb-tag-manage-list-${windowId}"></div>
-                                        <div class="kb-tag-manage-item" style="margin-top: 10px;">
-                                            <input type="text" class="input" id="kb-new-tag-name-${windowId}" placeholder="New tag..." style="font-size: 11px; padding: 4px 8px;">
-                                            <input type="color" class="tm-custom-color" id="kb-new-tag-color-${windowId}" value="#3b82f6">
-                                            <button class="btn btn-sm" id="kb-add-tag-btn-${windowId}">Add</button>
-                                        </div>
-                                    </div>
                                 </div>
                                 <div class="kb-input-group">
                                     <label class="label">Subtasks</label>
@@ -338,6 +328,24 @@
                             <div class="kb-modal-footer">
                                 <button class="btn" id="kb-task-delete-${windowId}" style="color: var(--error); border-color: rgba(248,113,113,0.2);">Delete Task</button>
                                 <button class="btn btn-accent" id="kb-task-save-${windowId}">Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tag Settings Modal -->
+                    <div class="kb-modal-overlay" id="kb-tags-modal-overlay-${windowId}">
+                        <div class="kb-modal" style="width: 380px;">
+                            <div class="kb-modal-header">
+                                <span style="font-weight: 600; font-size: 15px;">Manage Board Tags</span>
+                                <button class="btn btn-sm btn-icon" id="kb-tags-modal-close-${windowId}">✕</button>
+                            </div>
+                            <div class="kb-modal-body">
+                                <div id="kb-tag-manage-list-${windowId}"></div>
+                                <div class="kb-tag-manage-item" style="margin-top: 10px; border-top: 1px solid var(--glass-border); padding-top: 10px;">
+                                    <input type="text" class="input" id="kb-new-tag-name-${windowId}" placeholder="New tag..." style="font-size: 11px; padding: 4px 8px; flex: 1;">
+                                    <input type="color" class="tm-custom-color" id="kb-new-tag-color-${windowId}" value="#3b82f6" style="width: 28px; height: 28px; padding: 0; border: none; background: transparent; cursor: pointer;">
+                                    <button class="btn btn-sm" id="kb-add-tag-btn-${windowId}">Add Tag</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -356,6 +364,8 @@
             const modalDesc = container.querySelector(`#kb-task-desc-${windowId}`);
             const modalSubtasks = container.querySelector(`#kb-modal-subtasks-${windowId}`);
             const modalPrioOpts = container.querySelectorAll('.kb-prio-opt');
+            
+            const tagsModalOverlay = container.querySelector(`#kb-tags-modal-overlay-${windowId}`);
             let currentEditingTask = null; // { boardId, colId, taskId }
 
             function renderSidebar() {
@@ -620,7 +630,6 @@
                 });
 
                 renderTagPicker(board, task);
-                renderTagManager(board, task);
                 renderSubtasksInModal(task);
                 modalOverlay.classList.add('open');
             }
@@ -651,7 +660,7 @@
                 });
             }
 
-            function renderTagManager(board, task) {
+            function renderTagManager(board) {
                 const list = container.querySelector(`#kb-tag-manage-list-${windowId}`);
                 list.innerHTML = board.tags.map((tag, i) => `
                     <div class="kb-tag-manage-item">
@@ -671,8 +680,10 @@
                             t.tags = t.tags.filter(tag => tag !== tagName);
                         }));
                         save();
-                        renderTagManager(board, task);
-                        renderTagPicker(board, task);
+                        renderTagManager(board);
+                        if (currentEditingTask) {
+                            renderTagPicker(board, getActiveTask());
+                        }
                     };
                 });
 
@@ -688,8 +699,10 @@
                     board.tags.push({ name, color: colorInp.value });
                     nameInp.value = '';
                     save();
-                    renderTagManager(board, task);
-                    renderTagPicker(board, task);
+                    renderTagManager(board);
+                    if (currentEditingTask) {
+                        renderTagPicker(board, getActiveTask());
+                    }
                 };
             }
 
@@ -726,21 +739,42 @@
             }
 
             function closeTaskModal() {
-                if (!modalOverlay.classList.contains('open')) return;
-                modalOverlay.classList.remove('open');
-                currentEditingTask = null;
+                if (modalOverlay.classList.contains('open')) {
+                    modalOverlay.classList.remove('open');
+                    currentEditingTask = null;
+                }
+            }
+
+            function closeTagsModal() {
+                if (tagsModalOverlay.classList.contains('open')) {
+                    tagsModalOverlay.classList.remove('open');
+                }
             }
 
             // Bind Dismissal Events
             modalOverlay.onclick = (e) => {
                 if (e.target === modalOverlay) closeTaskModal();
             };
+            tagsModalOverlay.onclick = (e) => {
+                if (e.target === tagsModalOverlay) closeTagsModal();
+            };
 
             const handleEsc = (e) => {
-                if (e.key === 'Escape') closeTaskModal();
+                if (e.key === 'Escape') {
+                    closeTaskModal();
+                    closeTagsModal();
+                }
             };
             window.addEventListener('keydown', handleEsc);
 
+            // Tags Modal Actions
+            container.querySelector(`#kb-manage-tags-${windowId}`).onclick = () => {
+                const board = state.boards.find(b => b.id === state.activeBoardId);
+                if (!board) return;
+                renderTagManager(board);
+                tagsModalOverlay.classList.add('open');
+            };
+            container.querySelector(`#kb-tags-modal-close-${windowId}`).onclick = closeTagsModal;
 
             // Bind Modal Actions
             container.querySelector(`#kb-modal-close-${windowId}`).onclick = closeTaskModal;

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   Tool: Notepad — Feature-rich markdown scratchpad
+   Tool: Notepad — Feature-rich markdown scratchpad (Monaco)
    ═══════════════════════════════════════════════════════════ */
 (function () {
     const STYLE = document.createElement('style');
@@ -80,15 +80,17 @@
 .notepad-editor-pane {
     flex:1; display:flex; flex-direction:column; min-width:0;
 }
-.notepad-editor {
-    flex:1; resize:none; border:none; outline:none;
-    background:transparent; color:var(--text-primary);
-    font-family:'JetBrains Mono', monospace;
-    font-size:13px; line-height:1.7;
-    padding:16px 20px; tab-size:4;
-    overflow-y:auto;
+
+/* Monaco integration */
+.np-monaco-container { flex:1; min-height:0; }
+.np-monaco-container .monaco-editor,
+.np-monaco-container .monaco-editor-background,
+.np-monaco-container .monaco-editor .margin {
+    background: transparent !important;
 }
-.notepad-editor::placeholder { color:var(--text-muted); }
+.np-monaco-container .monaco-editor .line-numbers {
+    color: var(--text-muted) !important;
+}
 
 /* Markdown preview */
 .notepad-preview-pane {
@@ -182,23 +184,6 @@
 }
 .notepad-status-left { display:flex; gap:14px; }
 .notepad-status-right { display:flex; gap:10px; align-items:center; }
-
-/* Search/Replace bar */
-.np-find-bar {
-    display:none; align-items:center; gap:6px;
-    padding:6px 10px;
-    border-bottom:1px solid var(--glass-border);
-    background:rgba(0,0,0,.15); flex-shrink:0; flex-wrap:wrap;
-}
-.np-find-bar.open { display:flex; }
-.np-find-input {
-    background:var(--bg-input); border:1px solid var(--glass-border);
-    border-radius:var(--r-sm); color:var(--text-primary);
-    font-size:12px; padding:4px 8px; outline:none; width:160px;
-    font-family:'Inter',sans-serif;
-}
-.np-find-input:focus { border-color:var(--accent); }
-.np-find-count { font-size:11px; color:var(--text-muted); min-width:40px; }
 `;
     document.head.appendChild(STYLE);
 
@@ -353,32 +338,6 @@
         return h + '</tbody></table>';
     }
 
-    /* ── Undo/Redo Manager ────────────────────────────────── */
-    class UndoManager {
-        constructor(maxSize = 200) {
-            this.stack = [];
-            this.idx = -1;
-            this.maxSize = maxSize;
-        }
-        push(state) {
-            // Remove any redo states
-            this.stack = this.stack.slice(0, this.idx + 1);
-            this.stack.push(state);
-            if (this.stack.length > this.maxSize) this.stack.shift();
-            this.idx = this.stack.length - 1;
-        }
-        undo() {
-            if (this.idx > 0) return this.stack[--this.idx];
-            return null;
-        }
-        redo() {
-            if (this.idx < this.stack.length - 1) return this.stack[++this.idx];
-            return null;
-        }
-        canUndo() { return this.idx > 0; }
-        canRedo() { return this.idx < this.stack.length - 1; }
-        current() { return this.stack[this.idx] ?? null; }
-    }
 
     const LS_KEY = 'toolbox_notepad';
     const SAMPLE = `# Welcome to Notepad 📝
@@ -412,8 +371,8 @@ function greet(name) {
         id: 'notepad',
         name: 'Notepad',
         icon: '📝',
-        description: 'Markdown scratchpad with checklists, undo/redo, and preview',
-        tags: ['note', 'notes', 'markdown', 'text', 'editor', 'scratch', 'checklist', 'todo', 'write', 'pad'],
+        description: 'Markdown scratchpad with checklists, Monaco editor, and preview',
+        tags: ['note', 'notes', 'markdown', 'text', 'editor', 'scratch', 'checklist', 'todo', 'write', 'pad', 'monaco'],
         defaultWidth: 820,
         defaultHeight: 580,
         minWidth: 480,
@@ -474,24 +433,8 @@ function greet(name) {
                     </button>
                 </div>
 
-                <div class="np-find-bar" id="np-find-${windowId}">
-                    <input class="np-find-input" id="np-find-text-${windowId}" placeholder="Find…" spellcheck="false">
-                    <span class="np-find-count" id="np-find-count-${windowId}"></span>
-                    <button class="np-btn" data-act="find-prev" title="Previous">▲</button>
-                    <button class="np-btn" data-act="find-next" title="Next">▼</button>
-                    <div class="sep"></div>
-                    <input class="np-find-input" id="np-replace-text-${windowId}" placeholder="Replace…" spellcheck="false">
-                    <button class="np-btn" data-act="replace-one" title="Replace"><span class="np-btn-label">Replace</span></button>
-                    <button class="np-btn" data-act="replace-all" title="Replace All"><span class="np-btn-label">All</span></button>
-                    <button class="np-btn" data-act="find-close" title="Close">✕</button>
-                </div>
-
                 <div class="notepad-body split" id="np-body-${windowId}">
-                    <div class="notepad-editor-pane">
-                        <textarea class="notepad-editor" id="np-editor-${windowId}"
-                            placeholder="Start writing… (Markdown supported)"
-                            spellcheck="false"></textarea>
-                    </div>
+                    <div class="notepad-editor-pane np-monaco-container" id="np-editor-${windowId}"></div>
                     <div class="notepad-preview-pane np-md" id="np-preview-${windowId}"></div>
                 </div>
 
@@ -509,29 +452,26 @@ function greet(name) {
 
             </div>`;
 
-            const editor   = container.querySelector(`#np-editor-${windowId}`);
+            const editorCont = container.querySelector(`#np-editor-${windowId}`);
             const preview  = container.querySelector(`#np-preview-${windowId}`);
             const body     = container.querySelector(`#np-body-${windowId}`);
             const tabsEl   = container.querySelector(`#np-tabs-${windowId}`);
-            const findBar  = container.querySelector(`#np-find-${windowId}`);
-            const findText = container.querySelector(`#np-find-text-${windowId}`);
-            const replText = container.querySelector(`#np-replace-text-${windowId}`);
-            const findCount = container.querySelector(`#np-find-count-${windowId}`);
             const wcEl = container.querySelector(`#np-wc-${windowId}`);
             const ccEl = container.querySelector(`#np-cc-${windowId}`);
             const lcEl = container.querySelector(`#np-lc-${windowId}`);
             const savedEl = container.querySelector(`#np-saved-${windowId}`);
             const originEl = container.querySelector(`#np-origin-${windowId}`);
 
+            let monacoEditor = null;
+            let monacoModels = [];
+            let monacoInstance = null;
 
             /* ── State ─────────────────────────────── */
             let notes = [];
             let activeNote = 0;
             let previewMode = 'split'; // split | preview-only | off
             let autoSort = true;
-            let undoManagers = [];
             let saveTimer = null;
-            let undoTimer = null;
 
             // Load saved notes
             try {
@@ -541,13 +481,37 @@ function greet(name) {
                     activeNote = Math.min(saved.active || 0, notes.length - 1);
                     previewMode = saved.previewMode || 'split';
                     autoSort = saved.autoSort !== false;
+
+                    // Trigger async reload for stubbed notes (files too large for cache)
+                    if (window.__TAURI__) {
+                        notes.forEach(async (n, i) => {
+                            if (n.isStub && n.filename) {
+                                try {
+                                    const res = await window.__TAURI__.invoke('workspace_read', { 
+                                        req: { filename: n.filename, subfolder: n.subfolder } 
+                                    });
+                                    if (res.success) {
+                                        n.content = res.content;
+                                        n.isStub = false;
+                                        // Update model if already initialized
+                                        if (monacoModels[i]) monacoModels[i].setValue(n.content);
+                                        if (i === activeNote) { updatePreview(); updateStats(); }
+                                    }
+                                } catch (e) {
+                                    console.error('Notepad: Failed to restore stubbed note', n.filename, e);
+                                }
+                            }
+                        });
+                    }
                 } else {
                     notes = [{ title: 'Untitled', content: SAMPLE }];
                 }
             } catch { notes = [{ title: 'Untitled', content: SAMPLE }]; }
 
-            undoManagers = notes.map(() => new UndoManager());
-            notes.forEach((n, i) => undoManagers[i].push(n.content));
+            function getActiveContent() {
+                if (monacoEditor) return monacoEditor.getValue();
+                return notes[activeNote]?.content || '';
+            }
 
             function save() {
                 savedEl.textContent = 'Saving…';
@@ -555,25 +519,50 @@ function greet(name) {
                 clearTimeout(saveTimer);
                 saveTimer = setTimeout(() => {
                     try {
+                        const notesToSave = notes.map(n => {
+                            // Smart Truncation: If file is large (>1MB) and exists on disk, save as stub
+                            if (n.content && n.content.length > 1000000 && n.filename) {
+                                return { 
+                                    ...n, 
+                                    content: '', 
+                                    isStub: true 
+                                };
+                            }
+                            // If large and NOT on disk, still truncate to protect quota but keep some content
+                            if (n.content && n.content.length > 2000000) {
+                                return { 
+                                    ...n, 
+                                    content: n.content.substring(0, 2000000) + '\n\n[Content truncated for local cache (2MB limit)...]' 
+                                };
+                            }
+                            return n;
+                        });
                         localStorage.setItem(LS_KEY, JSON.stringify({
-                            notes, active: activeNote, previewMode, autoSort
+                            notes: notesToSave, active: activeNote, previewMode, autoSort
                         }));
-                    } catch {}
-                    savedEl.textContent = 'Saved';
-                    savedEl.style.color = 'var(--success)';
+                        savedEl.textContent = 'Saved';
+                        savedEl.style.color = 'var(--success)';
+                    } catch (e) {
+                        savedEl.textContent = 'Cache Full';
+                        savedEl.style.color = 'var(--error)';
+                    }
                 }, 400);
             }
 
             function switchNote(idx) {
                 if (activeNote === idx) return;
-                // Save current
-                if (notes[activeNote]) notes[activeNote].content = editor.value;
+                
+                if (notes[activeNote]) notes[activeNote].content = getActiveContent();
+                
                 activeNote = idx;
-                editor.value = notes[idx].content;
+                
+                if (monacoEditor && monacoModels[idx]) {
+                    monacoEditor.setModel(monacoModels[idx]);
+                }
+
                 renderTabs();
                 updatePreview();
                 updateStats();
-                updateUndoButtons();
                 updateOriginUI();
             }
 
@@ -620,11 +609,14 @@ function greet(name) {
 
                         // Save current editor content if closing a DIFFERENT tab
                         if (idx !== activeNote && notes[activeNote]) {
-                            notes[activeNote].content = editor.value;
+                            notes[activeNote].content = getActiveContent();
                         }
 
                         notes.splice(idx, 1);
-                        undoManagers.splice(idx, 1);
+                        if (monacoModels[idx]) {
+                            monacoModels[idx].dispose();
+                            monacoModels.splice(idx, 1);
+                        }
 
                         // Shift active pointer if needed
                         let nextActive = activeNote;
@@ -633,14 +625,15 @@ function greet(name) {
                             nextActive = Math.min(idx, notes.length - 1);
                         }
                         
-                        // Manually switch without triggering the switchNote save logic
+                        // Manually switch
                         activeNote = nextActive;
-                        editor.value = notes[activeNote].content;
+                        if (monacoEditor && monacoModels[activeNote]) {
+                            monacoEditor.setModel(monacoModels[activeNote]);
+                        }
                         
                         renderTabs();
                         updatePreview();
                         updateStats();
-                        updateUndoButtons();
                         save();
                     });
                 });
@@ -655,8 +648,9 @@ function greet(name) {
                     if (existingNums.length > 0) nextNum = Math.max(...existingNums) + 1;
                     
                     notes.push({ title: `Note ${nextNum}`, content: '' });
-                    undoManagers.push(new UndoManager());
-                    undoManagers[undoManagers.length - 1].push('');
+                    if (monacoInstance) {
+                        monacoModels.push(monacoInstance.editor.createModel('', 'markdown'));
+                    }
                     switchNote(notes.length - 1);
                     save();
                 });
@@ -668,7 +662,14 @@ function greet(name) {
 
             /* ── Preview ───────────────────────────── */
             function updatePreview() {
-                const src = editor.value;
+                if (previewMode === 'off') return;
+
+                const src = getActiveContent();
+                if (src.length > 500000) {
+                    preview.innerHTML = '<div style="padding:20px; color:var(--text-muted);"><em>Markdown preview is disabled for files larger than 500KB to maintain performance.</em></div>';
+                    return;
+                }
+
                 let md = parseMarkdown(src);
 
                 // If autoSort is on, rearrange in preview
@@ -719,16 +720,19 @@ function greet(name) {
             }
 
             function toggleCheckbox(lineIdx, checked) {
-                const lines = editor.value.split('\n');
+                const lines = getActiveContent().split('\n');
                 if (lineIdx >= 0 && lineIdx < lines.length) {
                     if (checked) {
-                        lines[lineIdx] = lines[lineIdx].replace(/\[\s\]/, '[x]');
+                        lines[lineIdx] = lines[lineIdx].replace(/\[ \]/, '[x]');
                     } else {
                         lines[lineIdx] = lines[lineIdx].replace(/\[[xX]\]/, '[ ]');
                     }
-                    editor.value = lines.join('\n');
-                    notes[activeNote].content = editor.value;
-                    pushUndo();
+                    
+                    notes[activeNote].content = lines.join('\n');
+                    if (monacoModels[activeNote]) {
+                        monacoModels[activeNote].setValue(notes[activeNote].content);
+                    }
+                    
                     updatePreview();
                     updateStats();
                     save();
@@ -737,163 +741,58 @@ function greet(name) {
 
             /* ── Stats ─────────────────────────────── */
             function updateStats() {
-                const text = editor.value;
-                const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+                const text = getActiveContent();
                 const chars = text.length;
-                const lines = text.split('\n').length;
+                let lines = 1;
+                let words = 0;
+                let inWord = false;
+                for (let i = 0; i < chars; i++) {
+                    const c = text.charCodeAt(i);
+                    if (c === 10) lines++; // \n
+                    if (c <= 32) {
+                        inWord = false;
+                    } else if (!inWord) {
+                        words++;
+                        inWord = true;
+                    }
+                }
                 wcEl.textContent = `${words} word${words !== 1 ? 's' : ''}`;
                 ccEl.textContent = `${chars} char${chars !== 1 ? 's' : ''}`;
                 lcEl.textContent = `${lines} line${lines !== 1 ? 's' : ''}`;
             }
 
-            /* ── Undo/Redo ─────────────────────────── */
-            function pushUndo() {
-                clearTimeout(undoTimer);
-                undoTimer = setTimeout(() => {
-                    const um = undoManagers[activeNote];
-                    if (um && editor.value !== um.current()) {
-                        um.push(editor.value);
-                    }
-                    updateUndoButtons();
-                }, 300);
-            }
-
-            function doUndo() {
-                const um = undoManagers[activeNote];
-                if (!um) return;
-                // Push current if different
-                if (editor.value !== um.current()) um.push(editor.value);
-                const val = um.undo();
-                if (val !== null) {
-                    editor.value = val;
-                    notes[activeNote].content = val;
-                    updatePreview();
-                    updateStats();
-                    save();
-                }
-                updateUndoButtons();
-            }
-
-            function doRedo() {
-                const um = undoManagers[activeNote];
-                if (!um) return;
-                const val = um.redo();
-                if (val !== null) {
-                    editor.value = val;
-                    notes[activeNote].content = val;
-                    updatePreview();
-                    updateStats();
-                    save();
-                }
-                updateUndoButtons();
-            }
-
-            function updateUndoButtons() {
-                const um = undoManagers[activeNote];
-                const undoBtn = container.querySelector('[data-act="undo"]');
-                const redoBtn = container.querySelector('[data-act="redo"]');
-                if (undoBtn) undoBtn.disabled = !um || !um.canUndo();
-                if (redoBtn) redoBtn.disabled = !um || !um.canRedo();
-            }
-
-            /* ── Find & Replace ────────────────────── */
-            let findMatches = [];
-            let findIdx = -1;
-
-            function openFind() {
-                findBar.classList.add('open');
-                const btn = container.querySelector('[data-act="find"]');
-                if (btn) btn.classList.add('active');
-                findText.focus();
-            }
-            function closeFind() {
-                findBar.classList.remove('open');
-                const btn = container.querySelector('[data-act="find"]');
-                if (btn) btn.classList.remove('active');
-                findCount.textContent = '';
-                findMatches = [];
-                findIdx = -1;
-            }
-            function doFind(dir = 1, focusEditor = true) {
-                const q = findText.value;
-                if (!q) { findCount.textContent = ''; findMatches = []; return; }
-                const text = editor.value;
-                findMatches = [];
-                let pos = 0;
-                const qLower = q.toLowerCase();
-                const textLower = text.toLowerCase();
-                while ((pos = textLower.indexOf(qLower, pos)) !== -1) {
-                    findMatches.push(pos);
-                    pos += q.length;
-                }
-                if (!findMatches.length) {
-                    findCount.textContent = '0 found';
-                    return;
-                }
-                if (focusEditor) {
-                    if (dir > 0) findIdx = (findIdx + 1) % findMatches.length;
-                    else findIdx = (findIdx - 1 + findMatches.length) % findMatches.length;
-                } else {
-                    if (findIdx < 0 || findIdx >= findMatches.length) findIdx = 0;
-                }
-                findCount.textContent = `${findIdx + 1} of ${findMatches.length}`;
-                if (focusEditor) {
-                    editor.focus();
-                    editor.setSelectionRange(findMatches[findIdx], findMatches[findIdx] + q.length);
-                }
-            }
-            function doReplace() {
-                if (findIdx < 0 || !findMatches.length) return;
-                const q = findText.value;
-                const r = replText.value;
-                const pos = findMatches[findIdx];
-                const before = editor.value.substring(0, pos);
-                const after = editor.value.substring(pos + q.length);
-                editor.value = before + r + after;
-                notes[activeNote].content = editor.value;
-                pushUndo(); updatePreview(); updateStats(); save();
-                findIdx = Math.max(findIdx - 1, -1);
-                doFind(1);
-            }
-            function doReplaceAll() {
-                const q = findText.value;
-                const r = replText.value;
-                if (!q) return;
-                const regex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-                editor.value = editor.value.replace(regex, r);
-                notes[activeNote].content = editor.value;
-                pushUndo(); updatePreview(); updateStats(); save();
-                doFind(1);
-            }
 
             /* ── Toolbar formatting helpers ─────────── */
-            function wrapSelection(before, after) {
-                const start = editor.selectionStart;
-                const end = editor.selectionEnd;
-                const sel = editor.value.substring(start, end);
-                const replacement = before + (sel || 'text') + after;
-                editor.setRangeText(replacement, start, end, 'select');
-                editor.focus();
-                notes[activeNote].content = editor.value;
-                pushUndo(); updatePreview(); updateStats(); save();
+            function wrapSelection(prefix, suffix = prefix) {
+                if (!monacoEditor) return;
+                const selection = monacoEditor.getSelection();
+                const text = monacoEditor.getModel().getValueInRange(selection);
+                monacoEditor.executeEdits("", [{
+                    range: selection,
+                    text: prefix + text + suffix,
+                    forceMoveMarkers: true
+                }]);
+                monacoEditor.focus();
             }
 
             function prependLine(prefix) {
-                const start = editor.selectionStart;
-                const lineStart = editor.value.lastIndexOf('\n', start - 1) + 1;
-                const before = editor.value.substring(0, lineStart);
-                const after = editor.value.substring(lineStart);
-                editor.value = before + prefix + after;
-                editor.selectionStart = editor.selectionEnd = start + prefix.length;
-                editor.focus();
-                notes[activeNote].content = editor.value;
-                pushUndo(); updatePreview(); updateStats(); save();
+                if (!monacoEditor || !monacoInstance) return;
+                const selection = monacoEditor.getSelection();
+                const ops = [];
+                for (let i = selection.startLineNumber; i <= selection.endLineNumber; i++) {
+                    ops.push({
+                        range: new monacoInstance.Range(i, 1, i, 1),
+                        text: prefix
+                    });
+                }
+                monacoEditor.executeEdits("", ops);
+                monacoEditor.focus();
             }
 
             /* ── Toolbar actions ───────────────────── */
             const actions = {
-                undo: doUndo,
-                redo: doRedo,
+                undo: () => monacoEditor?.trigger('keyboard', 'undo', null),
+                redo: () => monacoEditor?.trigger('keyboard', 'redo', null),
                 bold: () => wrapSelection('**', '**'),
                 italic: () => wrapSelection('*', '*'),
                 strike: () => wrapSelection('~~', '~~'),
@@ -902,17 +801,13 @@ function greet(name) {
                 link: () => wrapSelection('[', '](url)'),
                 checkbox: () => prependLine('- [ ] '),
                 quote: () => prependLine('> '),
-                find: () => findBar.classList.contains('open') ? closeFind() : openFind(),
-                'find-next': () => doFind(1),
-                'find-prev': () => doFind(-1),
-                'find-close': closeFind,
-                'replace-one': doReplace,
-                'replace-all': doReplaceAll,
+                find: () => monacoEditor?.getAction('actions.find').run(),
                 preview: () => {
                     const modes = ['split', 'preview-only', 'off'];
                     const cur = modes.indexOf(previewMode);
                     previewMode = modes[(cur + 1) % modes.length];
                     applyPreviewMode();
+                    updatePreview();
                     save();
                 },
                 autosort: () => {
@@ -943,7 +838,7 @@ function greet(name) {
 
                     try {
                         const res = await window.__TAURI__.invoke('workspace_write', {
-                            req: { filename, content: editor.value, subfolder }
+                            req: { filename, content: getActiveContent(), subfolder }
                         });
                         if (res.success) {
                             savedEl.textContent = 'Saved to Workspace';
@@ -974,9 +869,9 @@ function greet(name) {
                         ext = choice.startsWith('.') ? choice : '.' + choice;
                     }
                     
-                    let outContent = note.content;
+                    let outContent = getActiveContent();
                     if (ext === '.html') {
-                        outContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title></head><body>\n` + parseMarkdown(note.content) + `\n</body></html>`;
+                        outContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title></head><body>\n` + parseMarkdown(outContent) + `\n</body></html>`;
                     }
 
                     const blob = new Blob([outContent], { type: 'text/plain;charset=utf-8' });
@@ -1006,46 +901,6 @@ function greet(name) {
                 if (btn && actions[btn.dataset.act]) actions[btn.dataset.act]();
             });
 
-            /* ── Find bar event handling ── */
-            findText.addEventListener('input', () => { findIdx = -1; doFind(1, false); });
-            findText.addEventListener('keydown', e => {
-                if (e.key === 'Enter') { e.preventDefault(); doFind(e.shiftKey ? -1 : 1, true); }
-                if (e.key === 'Escape') closeFind();
-            });
-            replText.addEventListener('keydown', e => {
-                if (e.key === 'Enter') { e.preventDefault(); doReplace(); }
-                if (e.key === 'Escape') closeFind();
-            });
-
-            /* ── Editor events ─────────────────────── */
-            editor.addEventListener('input', () => {
-                notes[activeNote].content = editor.value;
-                pushUndo();
-                updatePreview();
-                updateStats();
-                save();
-            });
-
-            editor.addEventListener('keydown', e => {
-                // Tab support
-                if (e.key === 'Tab') {
-                    e.preventDefault();
-                    const start = editor.selectionStart;
-                    const end = editor.selectionEnd;
-                    editor.setRangeText('    ', start, end, 'end');
-                    notes[activeNote].content = editor.value;
-                    pushUndo();
-                }
-                // Ctrl shortcuts
-                if (e.ctrlKey || e.metaKey) {
-                    if (e.key === 'z') { e.preventDefault(); doUndo(); }
-                    if (e.key === 'y') { e.preventDefault(); doRedo(); }
-                    if (e.key === 'b') { e.preventDefault(); wrapSelection('**', '**'); }
-                    if (e.key === 'i' && !e.shiftKey) { e.preventDefault(); wrapSelection('*', '*'); }
-                    // F and S are handled by globalKey
-                }
-            });
-
             /* ── Global keyboard handler for notepad ─ */
             function globalKey(e) {
                 const winEl = container.closest('.window');
@@ -1054,8 +909,7 @@ function greet(name) {
                 if (e.ctrlKey || e.metaKey) {
                     if (e.key.toLowerCase() === 'f') {
                         e.preventDefault();
-                        if (!findBar.classList.contains('open')) actions.find();
-                        else findText.focus();
+                        actions.find();
                     }
                     if (e.key.toLowerCase() === 's') {
                         e.preventDefault();
@@ -1063,24 +917,76 @@ function greet(name) {
                         else actions.saveWorkspace();
                     }
                 }
-
             }
             document.addEventListener('keydown', globalKey);
 
             /* ── Initialize ────────────────────────── */
-            editor.value = notes[activeNote].content;
             renderTabs();
             applyPreviewMode();
             container.querySelector(`#np-autosort-${windowId}`).classList.toggle('active', autoSort);
-            updatePreview();
-            updateStats();
-            updateUndoButtons();
+
+            let inputDebounceTimer = null;
+            
+            async function initMonaco() {
+                try {
+                    const monaco = await window.loadMonaco();
+                    monacoInstance = monaco;
+
+                    monaco.editor.defineTheme('np-transparent', {
+                        base: 'vs-dark',
+                        inherit: true,
+                        rules: [],
+                        colors: {
+                            'editor.background': '#00000000',
+                            'editorGutter.background': '#00000000'
+                        }
+                    });
+
+                    monacoEditor = monaco.editor.create(editorCont, {
+                        theme: 'np-transparent',
+                        automaticLayout: true,
+                        fontSize: 13,
+                        fontFamily: "'JetBrains Mono', monospace",
+                        minimap: { enabled: false },
+                        wordWrap: 'on',
+                        scrollBeyondLastLine: false,
+                        padding: { top: 16, bottom: 16 },
+                    });
+
+                    monacoModels = [];
+                    notes.forEach(n => {
+                        monacoModels.push(monaco.editor.createModel(n.content, 'markdown'));
+                    });
+
+                    monacoEditor.setModel(monacoModels[activeNote]);
+
+                    monacoEditor.onDidChangeModelContent(() => {
+                        if (notes[activeNote]) notes[activeNote].content = monacoEditor.getValue();
+                        clearTimeout(inputDebounceTimer);
+                        inputDebounceTimer = setTimeout(() => {
+                            updatePreview();
+                            updateStats();
+                            save();
+                        }, 400);
+                    });
+
+                    updatePreview();
+                    updateStats();
+                } catch (e) {
+                    editorCont.innerHTML = `<div style="padding:20px; color:var(--error)">Failed to load Monaco: ${e.message}</div>`;
+                }
+            }
+
+            initMonaco();
 
             return {
                 cleanup: () => {
                     document.removeEventListener('keydown', globalKey);
                     clearTimeout(saveTimer);
-                    clearTimeout(undoTimer);
+                    if (monacoEditor) {
+                        monacoModels.forEach(m => m.dispose());
+                        monacoEditor.dispose();
+                    }
                 },
                 onMessage: (msg) => {
                     if (msg.type === 'open') {
@@ -1091,14 +997,14 @@ function greet(name) {
                             filename: msg.filename,
                             subfolder: msg.subfolder
                         });
-                        undoManagers.push(new UndoManager());
-                        undoManagers[undoManagers.length - 1].push(msg.content);
+                        if (monacoInstance) {
+                            monacoModels.push(monacoInstance.editor.createModel(msg.content, 'markdown'));
+                        }
                         switchNote(notes.length - 1);
                         save();
                         updateOriginUI();
                     }
                 }
-
             };
 
         }
