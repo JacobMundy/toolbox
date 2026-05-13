@@ -1,7 +1,7 @@
 {
   "build": {
-    "beforeDevCommand": "",
-    "beforeBuildCommand": "",
+    "beforeDevCommand": "npm run sync-libs",
+    "beforeBuildCommand": "npm run sync-libs",
     "devPath": "../frontend",
     "distDir": "../frontend",
     "withGlobalTauri": true

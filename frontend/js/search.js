@@ -36,6 +36,10 @@ class Search {
 
     refresh() {
         const tools = ToolRegistry.getAll();
+        if (typeof Fuse === 'undefined') {
+            console.error("Search: Fuse.js not loaded. Search will not function.");
+            return;
+        }
         this.fuse = new Fuse(tools, {
             keys: [
                 { name: 'name',        weight: 0.5 },
