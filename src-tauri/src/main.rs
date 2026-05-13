@@ -178,6 +178,11 @@ fn get_system_stats(state: tauri::State<AppState>) -> SystemStats {
     }
 }
 
+#[tauri::command]
+fn workspace_show_in_explorer(filename: Option<String>, subfolder: Option<String>) -> Result<(), String> {
+    commands::workspace::show_in_explorer(filename, subfolder)
+}
+
 fn main() {
     // In sysinfo 0.30, System::new_all() works but refresh_all() is often better
     let mut sys = System::new_all();
@@ -201,6 +206,7 @@ fn main() {
             workspace_delete,
             workspace_move,
             drag_file,
+            workspace_show_in_explorer,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

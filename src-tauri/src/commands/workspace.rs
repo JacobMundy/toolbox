@@ -227,3 +227,40 @@ pub fn create_workspace_dir(subfolder: String) -> Result<(), String> {
     let path = resolve_path(None, Some(subfolder))?;
     fs::create_dir_all(path).map_err(|e| e.to_string())
 }
+
+pub fn show_in_explorer(filename: Option<String>, subfolder: Option<String>) -> Result<(), String> {
+    let path = resolve_path(filename, subfolder)?;
+    
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        // On Windows, explorer.exe /select,"path" highlights the item.
+        Command::new("explorer")
+            .arg("/select,")
+            .arg(path.to_string_lossy().to_string())
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+        Command::new("open")
+            .arg("-R")
+            .arg(path.to_string_lossy().to_string())
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        // On Linux, we just open the containing folder.
+        let target = if path.is_dir() { path } else { path.parent().unwrap_or(&path).to_path_buf() };
+        std::process::Command::new("xdg-open")
+            .arg(target)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}

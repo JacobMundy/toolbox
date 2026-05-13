@@ -819,6 +819,13 @@
                 }
 
                 if (!isVirtual) {
+                    items.push({ type: 'sep' });
+                    items.push({ icon: '📂', text: 'Show in Explorer', action: async () => {
+                        try {
+                            const subfolder = currentPath.length > 0 ? currentPath.join('/') : null;
+                            await window.__TAURI__.invoke('workspace_show_in_explorer', { filename: name, subfolder });
+                        } catch (e) { alert('Could not open explorer: ' + e); }
+                    }});
                     items.push({ icon: '🗑️', text: 'Delete', danger: true, action: () => deleteItem(name) });
                 }
 

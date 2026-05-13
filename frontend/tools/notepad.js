@@ -765,34 +765,53 @@ function greet(name) {
             /* ── Toolbar formatting helpers ─────────── */
             function wrapSelection(prefix, suffix = prefix) {
                 if (!monacoEditor) return;
+                monacoEditor.focus();
                 const selection = monacoEditor.getSelection();
-                const text = monacoEditor.getModel().getValueInRange(selection);
-                monacoEditor.executeEdits("", [{
+                const model = monacoEditor.getModel();
+                const text = model.getValueInRange(selection);
+                
+                monacoEditor.pushUndoStop();
+                monacoEditor.executeEdits("format", [{
                     range: selection,
                     text: prefix + text + suffix,
                     forceMoveMarkers: true
                 }]);
+                
+                // Adjust selection to wrap the new text or stay inside if it was empty
+                if (selection.isEmpty()) {
+                    const pos = monacoEditor.getPosition();
+                    const newPos = { lineNumber: pos.lineNumber, column: pos.column - suffix.length };
+                    monacoEditor.setSelection({
+                        startLineNumber: newPos.lineNumber,
+                        startColumn: newPos.column,
+                        endLineNumber: newPos.lineNumber,
+                        endColumn: newPos.column
+                    });
+                }
+                monacoEditor.pushUndoStop();
                 monacoEditor.focus();
             }
 
             function prependLine(prefix) {
-                if (!monacoEditor || !monacoInstance) return;
+                if (!monacoEditor) return;
+                monacoEditor.focus();
                 const selection = monacoEditor.getSelection();
                 const ops = [];
                 for (let i = selection.startLineNumber; i <= selection.endLineNumber; i++) {
                     ops.push({
-                        range: new monacoInstance.Range(i, 1, i, 1),
+                        range: { startLineNumber: i, startColumn: 1, endLineNumber: i, endColumn: 1 },
                         text: prefix
                     });
                 }
-                monacoEditor.executeEdits("", ops);
+                monacoEditor.pushUndoStop();
+                monacoEditor.executeEdits("format", ops);
+                monacoEditor.pushUndoStop();
                 monacoEditor.focus();
             }
-
             /* ── Toolbar actions ───────────────────── */
             const actions = {
-                undo: () => monacoEditor?.trigger('keyboard', 'undo', null),
-                redo: () => monacoEditor?.trigger('keyboard', 'redo', null),
+                undo: () => { monacoEditor?.focus(); monacoEditor?.trigger('toolbar', 'undo'); },
+                redo: () => { monacoEditor?.focus(); monacoEditor?.trigger('toolbar', 'redo'); },
                 bold: () => wrapSelection('**', '**'),
                 italic: () => wrapSelection('*', '*'),
                 strike: () => wrapSelection('~~', '~~'),
@@ -853,8 +872,7 @@ function greet(name) {
                         alert('Save error: ' + e);
                     }
                 },
-                download: () => {
-
+                export: () => {
                     const note = notes[activeNote];
                     let title = (note.title || 'note').trim();
                     const hasExt = /\.(md|txt|html|js|json|css|py|csv)$/i.test(title);
@@ -913,7 +931,7 @@ function greet(name) {
                     }
                     if (e.key.toLowerCase() === 's') {
                         e.preventDefault();
-                        if (e.shiftKey) actions.download();
+                        if (e.shiftKey) actions.export();
                         else actions.saveWorkspace();
                     }
                 }

@@ -37,9 +37,15 @@
 .red-workspace { flex:1; display:flex; flex-direction:column; padding:16px; gap:16px; min-width:0; }
 .red-io-box { flex:1; display:flex; flex-direction:column; gap:6px; min-height:0; }
 .red-label { font-size:11px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; display:flex; justify-content:space-between; }
-.red-text-area {
-    flex:1; background:var(--bg-input); color:var(--text-primary); border:1px solid var(--glass-border); border-radius:var(--r-md);
-    padding:12px; font-family:'JetBrains Mono',monospace; font-size:13px; outline:none; resize:none;
+.red-editor-container {
+    flex:1; background:var(--bg-input); border:1px solid var(--glass-border); border-radius:var(--r-md);
+    overflow:hidden; position:relative;
+}
+.red-monaco-container { height:100%; width:100%; }
+.red-monaco-container .monaco-editor,
+.red-monaco-container .monaco-editor-background,
+.red-monaco-container .monaco-editor .margin {
+    background: transparent !important;
 }
 
 .red-footer { display:flex; gap:12px; align-items:center; padding-top:12px; border-top:1px solid var(--glass-border); }
@@ -184,14 +190,14 @@
                         <div class="red-workspace">
                             <div class="red-io-box">
                                 <div class="red-label">Input Text</div>
-                                <textarea id="red-input" class="red-text-area" placeholder="Paste sensitive text here..."></textarea>
+                                <div id="red-input-cont" class="red-editor-container"><div id="red-input" class="red-monaco-container"></div></div>
                             </div>
                             <div class="red-io-box">
                                 <div class="red-label">
                                     Redacted Result
                                     <span id="leak-count" style="color: var(--error); cursor: pointer; text-decoration: underline; display:none;">0 Leaks Detected</span>
                                 </div>
-                                <textarea id="red-output" class="red-text-area" readonly placeholder="Result will appear here..."></textarea>
+                                <div id="red-output-cont" class="red-editor-container"><div id="red-output" class="red-monaco-container"></div></div>
                             </div>
                             <div class="red-footer">
                                 <select id="red-mode" class="red-input-sm" style="width: auto;">
@@ -269,18 +275,68 @@
                 container.querySelector('#close-results').onclick = () => resultsPanel.classList.remove('open');
                 leakCount.onclick = () => resultsPanel.classList.add('open');
 
+                // Monaco State
+                let inputEditor = null;
+                let outputEditor = null;
+                let monacoInstance = null;
+
+                async function initMonaco() {
+                    try {
+                        const monaco = await window.loadMonaco();
+                        monacoInstance = monaco;
+
+                        monaco.editor.defineTheme('red-transparent', {
+                            base: 'vs-dark',
+                            inherit: true,
+                            rules: [],
+                            colors: {
+                                'editor.background': '#00000000',
+                                'editorGutter.background': '#00000000'
+                            }
+                        });
+
+                        inputEditor = monaco.editor.create(container.querySelector('#red-input'), {
+                            theme: 'red-transparent',
+                            automaticLayout: true,
+                            fontSize: 13,
+                            fontFamily: "'JetBrains Mono', monospace",
+                            minimap: { enabled: false },
+                            wordWrap: 'on',
+                            scrollBeyondLastLine: false,
+                            stickyScroll: { enabled: false },
+                            padding: { top: 12, bottom: 12 },
+                        });
+
+                        outputEditor = monaco.editor.create(container.querySelector('#red-output'), {
+                            theme: 'red-transparent',
+                            automaticLayout: true,
+                            fontSize: 13,
+                            fontFamily: "'JetBrains Mono', monospace",
+                            minimap: { enabled: false },
+                            wordWrap: 'on',
+                            scrollBeyondLastLine: false,
+                            stickyScroll: { enabled: false },
+                            padding: { top: 12, bottom: 12 },
+                            readOnly: true
+                        });
+                    } catch (e) {
+                        console.error('Redactor: Failed to load Monaco', e);
+                    }
+                }
+
+                initMonaco();
+
                 // Run Redaction
                 const runBtn = container.querySelector('#red-btn');
-                const input = container.querySelector('#red-input');
-                const output = container.querySelector('#red-output');
                 const status = container.querySelector('#red-status');
 
                 runBtn.onclick = async () => {
-                    if (!input.value.trim()) return;
+                    const text = inputEditor ? inputEditor.getValue() : '';
+                    if (!text.trim()) return;
                     status.textContent = 'Analyzing text...';
                     
                     const request = {
-                        text: input.value,
+                        text,
                         settings: {
                             primary: {
                                 first_name: state.primary.first_name || null,
@@ -300,7 +356,7 @@
 
                     try {
                         const result = await window.__TAURI__.invoke('redact_pii', { req: request });
-                        output.value = result.output;
+                        if (outputEditor) outputEditor.setValue(result.output);
                         
                         // Show Report
                         resultsPanel.classList.add('open');
@@ -340,6 +396,18 @@
             }
 
             render();
+
+            return {
+                cleanup: () => {
+                    if (inputEditor) inputEditor.dispose();
+                    if (outputEditor) outputEditor.dispose();
+                },
+                onMessage: (msg) => {
+                    if (msg.type === 'open' && inputEditor) {
+                        inputEditor.setValue(msg.content);
+                    }
+                }
+            };
         }
     });
 })();
