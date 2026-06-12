@@ -1,0 +1,18 @@
+{
+  "$schema": "../gen/schemas/capability.json",
+  "identifier": "default",
+  "description": "Default permissions for the Toolbox application",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:window:default",
+    "core:event:default",
+    "shell:default",
+    "fs:default",
+    "fs:read-all",
+    "fs:write-all",
+    "dialog:default",
+    "drag:default"
+  ]
+}

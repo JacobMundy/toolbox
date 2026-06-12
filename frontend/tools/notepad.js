@@ -487,7 +487,7 @@ function greet(name) {
                         notes.forEach(async (n, i) => {
                             if (n.isStub && n.filename) {
                                 try {
-                                    const res = await window.__TAURI__.invoke('workspace_read', { 
+                                    const res = await window.__TAURI__.core.invoke('workspace_read', { 
                                         req: { filename: n.filename, subfolder: n.subfolder } 
                                     });
                                     if (res.success) {
@@ -856,7 +856,7 @@ function greet(name) {
                     savedEl.style.color = 'var(--warning)';
 
                     try {
-                        const res = await window.__TAURI__.invoke('workspace_write', {
+                        const res = await window.__TAURI__.core.invoke('workspace_write', {
                             req: { filename, content: getActiveContent(), subfolder }
                         });
                         if (res.success) {
