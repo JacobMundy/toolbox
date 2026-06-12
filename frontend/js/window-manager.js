@@ -91,7 +91,11 @@ class WindowManager {
         const d = this.windows.get(id);
         if (!d) return;
         this._savePos(d);
-        if (typeof d.cleanup === 'function') d.cleanup();
+        try {
+            if (typeof d.cleanup === 'function') d.cleanup();
+        } catch (err) {
+            console.error('WindowManager: Error cleaning up tool', id, err);
+        }
         d.el.remove();
         this.windows.delete(id);
         this._removeTaskbarItem(id);

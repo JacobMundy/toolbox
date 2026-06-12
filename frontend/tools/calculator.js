@@ -151,6 +151,7 @@
             container.innerHTML = `
             <div class="calc">
                 <div class="calc-main">
+                    <div class="calc-display">
                         <div class="calc-display-top">
                             <div style="display:flex; gap:4px;">
                                 <button class="calc-hist-toggle" id="calc-ht" title="History">🕘</button>
@@ -163,6 +164,8 @@
                     <div class="calc-mode-bar">
                         <button class="calc-mode-btn active" data-mode="standard">Standard</button>
                         <button class="calc-mode-btn" data-mode="scientific">Scientific</button>
+                        <div style="flex:1;"></div>
+                        <button class="calc-mode-btn" id="calc-deg-rad" style="flex:none; width:60px; display:none;">DEG</button>
                     </div>
                     <div class="calc-grid standard" id="calc-grid"></div>
                 </div>
@@ -185,9 +188,11 @@
             let expr = '';
             let justEvaluated = false;
             let mode = 'standard';
+            let isDegrees = true;
 
-            // Restore mode
+            // Restore state
             try { mode = localStorage.getItem(LS_MODE) || 'standard'; } catch {}
+            try { isDegrees = localStorage.getItem('toolbox_calc_degrees') !== 'false'; } catch {}
 
             // History
             let history = [];
@@ -222,8 +227,17 @@
 
                 // Update mode buttons
                 modeBtns.forEach(b => {
-                    b.classList.toggle('active', b.dataset.mode === mode);
+                    if (b.dataset.mode) {
+                        b.classList.toggle('active', b.dataset.mode === mode);
+                    }
                 });
+
+                // Update DEG/RAD button visibility and text
+                const degRadBtn = container.querySelector('#calc-deg-rad');
+                if (degRadBtn) {
+                    degRadBtn.style.display = mode === 'scientific' ? 'block' : 'none';
+                    degRadBtn.textContent = isDegrees ? 'DEG' : 'RAD';
+                }
 
                 // Dynamically update window minWidth based on mode and history
                 updateWindowMinSize();
@@ -235,10 +249,23 @@
             // Mode switch
             modeBtns.forEach(b => {
                 b.addEventListener('click', () => {
-                    mode = b.dataset.mode;
-                    renderGrid();
+                    if (b.dataset.mode) {
+                        mode = b.dataset.mode;
+                        renderGrid();
+                    }
                 });
             });
+
+            // DEG/RAD switch listener
+            const degRadBtn = container.querySelector('#calc-deg-rad');
+            if (degRadBtn) {
+                degRadBtn.addEventListener('click', () => {
+                    isDegrees = !isDegrees;
+                    degRadBtn.textContent = isDegrees ? 'DEG' : 'RAD';
+                    try { localStorage.setItem('toolbox_calc_degrees', isDegrees); } catch {}
+                    updateDisplay();
+                });
+            }
             
             function updateWindowMinSize() {
                 const win = container.closest('.window');
@@ -283,7 +310,9 @@
 
             function formatNum(n) {
                 if (Number.isInteger(n) && Math.abs(n) < 1e15) return n.toLocaleString();
-                return parseFloat(n.toPrecision(12)).toString();
+                // Avoid displaying numbers with redundant rounding artifacts
+                const formatted = parseFloat(n.toPrecision(12));
+                return formatted.toString();
             }
 
             function factorial(n) {
@@ -297,28 +326,83 @@
 
             function evaluate(raw) {
                 if (!raw) return undefined;
+                
+                // 1. Convert brackets/braces to parentheses
                 let s = raw.toString().replace(/,/g, '') // Strip commas from formatting
                     .replace(/×/g, '*')
                     .replace(/÷/g, '/')
                     .replace(/−/g, '-')
-                    .replace(/π/g, `(${Math.PI})`)
-                    .replace(/(?<![a-z])e(?![a-z])/gi, `(${Math.E})`)
-                    .replace(/sin\(/g, 'Math.sin(')
-                    .replace(/cos\(/g, 'Math.cos(')
-                    .replace(/tan\(/g, 'Math.tan(')
-                    .replace(/ln\(/g, 'Math.log(')
-                    .replace(/log\(/g, 'Math.log10(')
-                    .replace(/√\(/g, 'Math.sqrt(')
-                    .replace(/abs\(/g, 'Math.abs(')
-                    .replace(/²/g, '**2')
-                    .replace(/\^/g, '**');
+                    .replace(/\[/g, '(').replace(/\]/g, ')')
+                    .replace(/\{/g, '(').replace(/\}/g, ')');
 
-                // Handle factorials (simple version: find numbers or parenthesized groups followed by !)
+                // 2. Strip trailing mathematical operators at the end of the string or before any closing parenthesis/bracket/brace
+                s = s.replace(/[\+\-\*\/×÷−\^\.]+(\s*(\)|\]|\}))/g, '$1')
+                     .replace(/[\+\-\*\/×÷−\^\.]+\s*$/, '');
+
+                // 3. Convert standard "Math." prefixes to direct calls so we shadow them safely
+                s = s.replace(/Math\./g, '');
+
+                // 4. Support math functions without immediate parentheses (e.g., "sin 30" -> "sin(30)")
+                s = s.replace(/(sin|cos|tan|log|ln|abs|sqrt)\s+(\d+(\.\d+)?)/gi, '$1($2)');
+
+                // 5. Replace constants
+                s = s.replace(/(π|\bpi\b)/gi, `(${Math.PI})`)
+                     .replace(/(?<![a-z])e(?![a-z]|\d|[+-]\d)/gi, `(${Math.E})`); // Euler's e, avoiding scientific e
+
+                // 6. Convert square roots
+                s = s.replace(/√\(/g, 'sqrt(');
+
+                // 7. Handle percentages (e.g. 50% -> (50*0.01))
+                s = s.replace(/(\d+(\.\d+)?|\([^)]+\))%/g, '($1*0.01)');
+
+                // 8. Implicit multiplication (e.g. "2(3+4)" -> "2*(3+4)", "2pi" -> "2*pi")
+                s = s
+                    .replace(/(\d)\s*(?=\(|sin|cos|tan|log|ln|abs|sqrt|e|π|pi)/gi, '$1*')
+                    .replace(/(\)|π|pi|e)\s*(?=\d|\(|sin|cos|tan|log|ln|abs|sqrt|e|π|pi)/gi, '$1*');
+
+                // 9. Exponentiation
+                s = s.replace(/²/g, '**2')
+                     .replace(/\^/g, '**');
+
+                // 10. Factorials
                 s = s.replace(/(\d+(\.\d+)?|(\([^)]+\)))!/g, 'factorial($1)');
 
-                // Validate (allowing Math functions and our factorial helper)
-                if (!/^[\d+\-*/.() %eMath.sincotalgqrb0-9f]+$/i.test(s)) throw new Error('Invalid');
-                return new Function('factorial', 'return ' + s)(factorial);
+                // 11. Auto-close unclosed open parentheses or prepend missing open parentheses for over-closed expressions
+                let openParens = 0;
+                for (let char of s) {
+                    if (char === '(') openParens++;
+                    else if (char === ')') openParens--;
+                }
+                if (openParens > 0) {
+                    s += ')'.repeat(openParens);
+                } else if (openParens < 0) {
+                    s = '('.repeat(Math.abs(openParens)) + s;
+                }
+
+                // 12. Character whitelist validation for security
+                if (!/^[\d+\-*/.() %eMath.sincotalgqrb0-9f^!]+$/i.test(s)) throw new Error('Invalid');
+
+                // Degree/Radian mappings for trig functions
+                const degToRad = val => val * Math.PI / 180;
+                const radToDeg = val => val * 180 / Math.PI;
+
+                const sinFn = x => isDegrees ? Math.sin(degToRad(x)) : Math.sin(x);
+                const cosFn = x => isDegrees ? Math.cos(degToRad(x)) : Math.cos(x);
+                const tanFn = x => isDegrees ? Math.tan(degToRad(x)) : Math.tan(x);
+                
+                const asinFn = x => isDegrees ? radToDeg(Math.asin(x)) : Math.asin(x);
+                const acosFn = x => isDegrees ? radToDeg(Math.acos(x)) : Math.acos(x);
+                const atanFn = x => isDegrees ? radToDeg(Math.atan(x)) : Math.atan(x);
+
+                // Safe runtime evaluation with shadowed functions
+                return new Function(
+                    'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 
+                    'ln', 'log', 'sqrt', 'abs', 'factorial', 
+                    'return ' + s
+                )(
+                    sinFn, cosFn, tanFn, asinFn, acosFn, atanFn,
+                    Math.log, Math.log10, Math.sqrt, Math.abs, factorial
+                );
             }
 
             // Input handling
@@ -437,7 +521,6 @@
                 }
                 // If it's just '0' and a digit is pressed, replace it immediately
                 if (resEl.value === '0' && /^[0-9]$/.test(e.key)) {
-                    // Let the default happen but we'll clear it first
                     resEl.value = '';
                 }
             });
@@ -452,8 +535,6 @@
                 const win = container.closest('.window');
                 if (!win || !win.classList.contains('active')) return;
                 
-                // If focus is inside the input, we only handle global things if we want to, but actually we let it flow.
-                // We'll intercept '=' from keyboard if they are NOT in the input, but if they are in the input, 'Enter' handles it.
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
                     return;
                 }
@@ -492,6 +573,12 @@
                     setTimeout(() => btn.textContent = oldIcon, 1000);
                 });
             });
+
+            // Expose for testing purposes
+            window.__test_evaluate = (raw, degrees = true) => {
+                isDegrees = degrees;
+                return evaluate(raw);
+            };
 
             updateDisplay();
             // Need a slight delay to allow the window manager to mount the container before setting minWidth

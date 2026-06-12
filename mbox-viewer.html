@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mbox Viewer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --surface3: #252525;
+    --border: #2a2a2a;
+    --border2: #333;
+    --accent: #e8d5a3;
+    --accent2: #b8a070;
+    --text: #e4e4e4;
+    --text2: #9a9a9a;
+    --text3: #6a6a6a;
+    --green: #4caf7d;
+    --red: #e06c6c;
+    --blue: #6ca8e0;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --radius: 4px;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .header-sep { flex: 1; }
+
+  .filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  input, select, button {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input:focus, select:focus { border-color: var(--accent2); }
+
+  input[type="text"], input[type="date"] {
+    padding: 5px 9px;
+    height: 30px;
+  }
+
+  input[type="text"] { width: 200px; }
+  input[type="date"] { width: 142px; color-scheme: dark; }
+
+  select {
+    padding: 5px 8px;
+    height: 30px;
+    cursor: pointer;
+  }
+
+  button {
+    padding: 5px 12px;
+    height: 30px;
+    cursor: pointer;
+    border-color: var(--border2);
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  button:hover { background: var(--surface3); border-color: var(--accent2); }
+  button:active { opacity: 0.8; }
+
+  .btn-accent {
+    background: var(--accent);
+    color: #111;
+    border-color: var(--accent);
+    font-weight: 500;
+  }
+  .btn-accent:hover { background: var(--accent2); border-color: var(--accent2); }
+
+  .filter-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  /* ── MAIN ── */
+  main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── EMAIL LIST ── */
+  #list-panel {
+    width: 360px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  #list-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  #email-list {
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  #email-list::-webkit-scrollbar { width: 6px; }
+  #email-list::-webkit-scrollbar-track { background: transparent; }
+  #email-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  .email-item {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+    position: relative;
+  }
+
+  .email-item:hover { background: var(--surface2); }
+  .email-item.active { background: var(--surface3); }
+  .email-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+  }
+
+  .email-item.unread .ei-subject { color: #fff; font-weight: 500; }
+
+  .ei-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 3px;
+  }
+
+  .ei-from {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+
+  .ei-date {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .ei-subject {
+    font-size: 12px;
+    color: var(--text2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+  }
+
+  .ei-preview {
+    font-size: 11px;
+    color: var(--text3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .unread-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 5px;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
+
+  /* ── READER ── */
+  #reader-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #reader-header {
+    padding: 16px 24px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  #reader-subject {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+
+  .reader-meta-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  .rml { color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; }
+  .rmv { color: var(--text2); }
+
+  #reader-body-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+  }
+
+  #reader-body-wrap::-webkit-scrollbar { width: 6px; }
+  #reader-body-wrap::-webkit-scrollbar-track { background: transparent; }
+  #reader-body-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  #reader-body {
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-width: 720px;
+    font-family: var(--sans);
+  }
+
+  #reader-body.html-body {
+    white-space: normal;
+    background: #fff;
+    color: #111;
+    padding: 20px;
+    border-radius: var(--radius);
+  }
+
+  #reader-body.html-body a { color: #1a5fb4; }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    color: var(--text3);
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    opacity: 0.3;
+  }
+
+  .empty-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ── DROP ZONE ── */
+  #drop-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,15,15,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    border: 2px dashed var(--accent);
+  }
+
+  #drop-overlay.active { display: flex; }
+
+  .drop-label {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* ── ATTACHMENT PILLS ── */
+  .attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 14px;
+  }
+
+  .attach-pill {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: 3px;
+    padding: 3px 8px;
+    color: var(--text2);
+  }
+
+  /* ── SCROLLBAR GLOBAL ── */
+  * { scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+
+  /* ── SORT BUTTONS ── */
+  .sort-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    padding: 0;
+    height: auto;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .sort-btn:hover { color: var(--accent); background: none; border: none; }
+  .sort-btn.asc::after { content: ' ↑'; }
+  .sort-btn.desc::after { content: ' ↓'; }
+
+  .has-attach { color: var(--accent2); font-size: 10px; margin-left: 4px; }
+</style>
+</head>
+<body>
+
+<div id="drop-overlay">
+  <div class="empty-icon">📬</div>
+  <div class="drop-label">Drop .mbox file to load</div>
+</div>
+
+<header>
+  <span class="logo">mbox viewer</span>
+
+  <div class="filter-row">
+    <span class="filter-label">Search</span>
+    <input type="text" id="search" placeholder="from, subject, body…">
+  </div>
+
+  <div class="filter-row">
+    <span class="filter-label">From</span>
+    <input type="date" id="date-from" title="From date">
+    <span class="filter-label">To</span>
+    <input type="date" id="date-to" title="To date">
+  </div>
+
+  <div class="filter-row">
+    <span class="filter-label">Status</span>
+    <select id="filter-read">
+      <option value="all">All</option>
+      <option value="unread">Unread</option>
+      <option value="read">Read</option>
+    </select>
+  </div>
+
+  <div class="filter-row">
+    <span class="filter-label">Has</span>
+    <select id="filter-attach">
+      <option value="all">Any</option>
+      <option value="yes">Attachment</option>
+      <option value="no">No attachment</option>
+    </select>
+  </div>
+
+  <div class="filter-row">
+    <button class="btn-accent" onclick="document.getElementById('file-input').click()">Open .mbox</button>
+    <input type="file" id="file-input" accept=".mbox,.mbx,text/plain" style="display:none">
+    <button id="clear-btn" style="display:none">Clear</button>
+  </div>
+</header>
+
+<main>
+  <div id="list-panel">
+    <div id="list-meta">
+      <span id="list-count">No file loaded</span>
+      <span>
+        Sort:
+        <button class="sort-btn" id="sort-date" onclick="cycleSort('date')">Date</button>
+        <button class="sort-btn" id="sort-from" onclick="cycleSort('from')">From</button>
+        <button class="sort-btn" id="sort-subj" onclick="cycleSort('subj')">Subject</button>
+      </span>
+    </div>
+    <div id="email-list">
+      <div class="empty-state" id="list-empty">
+        <div class="empty-icon">📂</div>
+        <div class="empty-label">Open or drop an mbox file</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="reader-panel">
+    <div class="empty-state" id="reader-empty">
+      <div class="empty-icon">✉️</div>
+      <div class="empty-label">Select an email to read</div>
+    </div>
+    <div id="reader-content" style="display:none; flex-direction:column; height:100%; overflow:hidden;">
+      <div id="reader-header">
+        <div id="reader-subject"></div>
+        <div class="reader-meta-grid" id="reader-meta"></div>
+        <div class="attachments" id="reader-attachments"></div>
+      </div>
+      <div id="reader-body-wrap">
+        <div id="reader-body"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+let allEmails = [];
+let filtered = [];
+let sortField = 'date';
+let sortDir = 'desc';
+let activeIdx = null;
+let readSet = new Set();
+
+/* ── PARSE MBOX ── */
+function parseMbox(text) {
+  const emails = [];
+  const fromLineRe = /^From \S+ .{24}/;
+  const lines = text.split('\n');
+  let current = [];
+
+  function flush() {
+    if (current.length) {
+      emails.push(parseEmail(current.join('\n')));
+      current = [];
+    }
+  }
+
+  for (const line of lines) {
+    if (fromLineRe.test(line) && current.length > 0) flush();
+    current.push(line);
+  }
+  flush();
+  return emails.filter(e => e.subject || e.from);
+}
+
+function decodeHeader(val) {
+  if (!val) return '';
+  return val.replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g, (_, charset, enc, data) => {
+    try {
+      if (enc.toUpperCase() === 'B') {
+        const bytes = atob(data);
+        return new TextDecoder(charset).decode(
+          Uint8Array.from(bytes, c => c.charCodeAt(0))
+        );
+      } else {
+        return decodeURIComponent(data.replace(/_/g, ' ').replace(/=([0-9A-Fa-f]{2})/g, (__, h) => '%' + h));
+      }
+    } catch { return data; }
+  }).replace(/\s+/g, ' ').trim();
+}
+
+function parseEmail(raw) {
+  const headerEnd = raw.indexOf('\n\n');
+  const headerRaw = headerEnd >= 0 ? raw.slice(0, headerEnd) : raw;
+  const bodyRaw   = headerEnd >= 0 ? raw.slice(headerEnd + 2) : '';
+
+  const headers = {};
+  const unfolded = headerRaw.replace(/\r?\n([ \t]+)/g, ' ');
+  for (const line of unfolded.split('\n')) {
+    const m = line.match(/^([A-Za-z\-]+):\s*(.*)/);
+    if (m) headers[m[1].toLowerCase()] = m[2].trim();
+  }
+
+  const from = decodeHeader(headers['from'] || '');
+  const to   = decodeHeader(headers['to']   || '');
+  const cc   = decodeHeader(headers['cc']   || '');
+  const subject = decodeHeader(headers['subject'] || '(no subject)');
+  const dateStr = headers['date'] || '';
+  const msgId   = headers['message-id'] || '';
+  const contentType = headers['content-type'] || '';
+  const isUnread = !headers['x-mozilla-status'] || headers['x-mozilla-status'] === '0000';
+
+  let date = null;
+  try { date = new Date(dateStr); if (isNaN(date)) date = null; } catch { date = null; }
+
+  const { body, htmlBody, attachments } = extractBody(bodyRaw, contentType, headers['content-transfer-encoding'] || '');
+
+  const fromName = extractName(from);
+  const preview  = body.replace(/\s+/g, ' ').trim().slice(0, 120);
+
+  return { from, fromName, to, cc, subject, date, msgId, contentType, body, htmlBody, attachments, preview, isUnread, raw };
+}
+
+function extractName(from) {
+  const m = from.match(/^"?([^"<]+)"?\s*</) || from.match(/^([^@<\s]+)/);
+  return m ? m[1].trim() : from;
+}
+
+function decodeTransfer(data, enc) {
+  enc = (enc || '').toLowerCase().trim();
+  if (enc === 'base64') {
+    try { return atob(data.replace(/\s/g, '')); } catch { return data; }
+  }
+  if (enc === 'quoted-printable') {
+    return data
+      .replace(/=\r?\n/g, '')
+      .replace(/=([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  }
+  return data;
+}
+
+function extractBody(bodyRaw, contentType, transferEnc) {
+  let body = '';
+  let htmlBody = null;
+  const attachments = [];
+
+  const boundaryMatch = contentType.match(/boundary="?([^";]+)"?/i);
+
+  if (boundaryMatch) {
+    const boundary = boundaryMatch[1].trim();
+    const parts = bodyRaw.split(new RegExp(`--${regEsc(boundary)}(?:--)?`));
+    for (const part of parts) {
+      if (!part.trim()) continue;
+      const pEnd = part.indexOf('\n\n');
+      if (pEnd < 0) continue;
+      const pHead = part.slice(0, pEnd).replace(/\r?\n([ \t]+)/g, ' ');
+      const pBody = part.slice(pEnd + 2);
+      const pHeaders = {};
+      for (const l of pHead.split('\n')) {
+        const m = l.match(/^([A-Za-z\-]+):\s*(.*)/);
+        if (m) pHeaders[m[1].toLowerCase()] = m[2].trim();
+      }
+      const pCT  = pHeaders['content-type'] || 'text/plain';
+      const pEnc = pHeaders['content-transfer-encoding'] || '';
+      const pDisp = pHeaders['content-disposition'] || '';
+      const fnMatch = pDisp.match(/filename="?([^";\n]+)"?/i) || pCT.match(/name="?([^";\n]+)"?/i);
+
+      if (fnMatch) {
+        attachments.push(fnMatch[1].trim());
+        continue;
+      }
+
+      const decoded = decodeTransfer(pBody, pEnc);
+
+      if (!body && /text\/plain/i.test(pCT)) {
+        body = decoded;
+      } else if (!htmlBody && /text\/html/i.test(pCT)) {
+        htmlBody = decoded;
+      }
+    }
+  } else {
+    const decoded = decodeTransfer(bodyRaw, transferEnc);
+    if (/text\/html/i.test(contentType)) {
+      htmlBody = decoded;
+    } else {
+      body = decoded;
+    }
+  }
+
+  if (!body && htmlBody) {
+    body = htmlBody.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  return { body: body.trim(), htmlBody, attachments };
+}
+
+function regEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+/* ── FORMATTING ── */
+function fmtDate(d) {
+  if (!d) return '—';
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 86400000 && d.getDate() === now.getDate())
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (diff < 86400000 * 7)
+    return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function fmtDateLong(d) {
+  if (!d) return '—';
+  return d.toLocaleString([], { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+/* ── FILTER & SORT ── */
+function applyFilters() {
+  const search   = document.getElementById('search').value.toLowerCase();
+  const dateFrom = document.getElementById('date-from').value ? new Date(document.getElementById('date-from').value) : null;
+  const dateTo   = document.getElementById('date-to').value   ? new Date(document.getElementById('date-to').value + 'T23:59:59') : null;
+  const readFilter   = document.getElementById('filter-read').value;
+  const attachFilter = document.getElementById('filter-attach').value;
+
+  filtered = allEmails.filter((e, i) => {
+    if (search) {
+      const hay = `${e.from} ${e.subject} ${e.body}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (dateFrom && e.date && e.date < dateFrom) return false;
+    if (dateTo   && e.date && e.date > dateTo)   return false;
+    if (readFilter === 'unread' && (readSet.has(i) || !e.isUnread)) return false;
+    if (readFilter === 'read'   && (!readSet.has(i) && e.isUnread)) return false;
+    if (attachFilter === 'yes' && !e.attachments.length) return false;
+    if (attachFilter === 'no'  && e.attachments.length)  return false;
+    return true;
+  });
+
+  sortEmails();
+  renderList();
+}
+
+function sortEmails() {
+  filtered.sort((a, b) => {
+    let va, vb;
+    if (sortField === 'date') { va = a.date?.getTime() || 0; vb = b.date?.getTime() || 0; }
+    else if (sortField === 'from') { va = a.fromName.toLowerCase(); vb = b.fromName.toLowerCase(); }
+    else { va = a.subject.toLowerCase(); vb = b.subject.toLowerCase(); }
+    if (va < vb) return sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+function cycleSort(field) {
+  if (sortField === field) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortField = field; sortDir = field === 'date' ? 'desc' : 'asc'; }
+  ['date','from','subj'].forEach(f => {
+    const btn = document.getElementById('sort-' + f);
+    btn.className = 'sort-btn' + (f === field ? ' ' + sortDir : '');
+  });
+  sortEmails();
+  renderList();
+}
+
+/* ── RENDER LIST ── */
+function renderList() {
+  const el = document.getElementById('email-list');
+  const empty = document.getElementById('list-empty');
+  document.getElementById('list-count').textContent =
+    filtered.length + ' of ' + allEmails.length + ' message' + (allEmails.length !== 1 ? 's' : '');
+
+  if (!filtered.length) {
+    el.innerHTML = '';
+    el.appendChild(empty);
+    empty.style.display = 'flex';
+    empty.querySelector('.empty-label').textContent = allEmails.length ? 'No matches' : 'Open or drop an mbox file';
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  el.innerHTML = filtered.map((e, fi) => {
+    const origIdx = allEmails.indexOf(e);
+    const isUnread = e.isUnread && !readSet.has(origIdx);
+    return `<div class="email-item${isUnread ? ' unread' : ''}${activeIdx === origIdx ? ' active' : ''}"
+      data-idx="${origIdx}" onclick="openEmail(${origIdx})">
+      <div class="ei-top">
+        <span class="ei-from">${isUnread ? '<span class="unread-dot"></span>' : ''}${esc(e.fromName)}</span>
+        <span class="ei-date">${fmtDate(e.date)}</span>
+      </div>
+      <div class="ei-subject">${esc(e.subject)}${e.attachments.length ? '<span class="has-attach" title="Has attachments">📎</span>' : ''}</div>
+      <div class="ei-preview">${esc(e.preview)}</div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── OPEN EMAIL ── */
+function openEmail(idx) {
+  activeIdx = idx;
+  readSet.add(idx);
+  const e = allEmails[idx];
+
+  document.querySelectorAll('.email-item').forEach(el => {
+    el.classList.toggle('active', Number(el.dataset.idx) === idx);
+    if (Number(el.dataset.idx) === idx) el.classList.remove('unread');
+  });
+
+  document.getElementById('reader-empty').style.display = 'none';
+  const rc = document.getElementById('reader-content');
+  rc.style.display = 'flex';
+
+  document.getElementById('reader-subject').textContent = e.subject;
+
+  const metaRows = [
+    ['From', e.from],
+    ['To',   e.to],
+    e.cc ? ['CC', e.cc] : null,
+    ['Date', fmtDateLong(e.date)],
+    e.msgId ? ['ID', e.msgId] : null,
+  ].filter(Boolean);
+
+  document.getElementById('reader-meta').innerHTML = metaRows.map(([l, v]) =>
+    `<span class="rml">${l}</span><span class="rmv">${esc(v)}</span>`
+  ).join('');
+
+  const attEl = document.getElementById('reader-attachments');
+  attEl.innerHTML = e.attachments.map(a =>
+    `<span class="attach-pill">📎 ${esc(a)}</span>`
+  ).join('');
+
+  const bodyEl = document.getElementById('reader-body');
+
+  if (e.htmlBody) {
+    bodyEl.className = 'html-body';
+    const clean = sanitizeHtml(e.htmlBody);
+    bodyEl.innerHTML = clean;
+  } else {
+    bodyEl.className = '';
+    bodyEl.textContent = e.body || '(empty)';
+  }
+
+  document.getElementById('reader-body-wrap').scrollTop = 0;
+}
+
+function sanitizeHtml(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  div.querySelectorAll('script, style, link, meta, iframe, object, embed').forEach(el => el.remove());
+  div.querySelectorAll('[onclick],[onload],[onerror],[onmouseover]').forEach(el => {
+    ['onclick','onload','onerror','onmouseover'].forEach(a => el.removeAttribute(a));
+  });
+  div.querySelectorAll('a').forEach(a => {
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+  });
+  div.querySelectorAll('img').forEach(img => {
+    const src = img.getAttribute('src') || '';
+    if (!src.startsWith('data:') && !src.startsWith('http')) img.remove();
+  });
+  return div.innerHTML;
+}
+
+/* ── FILE LOADING ── */
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    allEmails = parseMbox(e.target.result);
+    readSet.clear();
+    activeIdx = null;
+    document.getElementById('reader-empty').style.display = 'flex';
+    document.getElementById('reader-content').style.display = 'none';
+    document.getElementById('clear-btn').style.display = '';
+    document.querySelector('.logo').textContent = file.name;
+    applyFilters();
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) loadFile(e.target.files[0]);
+});
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+  allEmails = []; filtered = []; readSet.clear(); activeIdx = null;
+  document.querySelector('.logo').textContent = 'mbox viewer';
+  document.getElementById('clear-btn').style.display = 'none';
+  document.getElementById('reader-empty').style.display = 'flex';
+  document.getElementById('reader-content').style.display = 'none';
+  applyFilters();
+});
+
+/* ── DRAG & DROP ── */
+document.addEventListener('dragenter', e => { e.preventDefault(); document.getElementById('drop-overlay').classList.add('active'); });
+document.addEventListener('dragleave', e => { if (e.relatedTarget === null) document.getElementById('drop-overlay').classList.remove('active'); });
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  document.getElementById('drop-overlay').classList.remove('active');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+
+/* ── FILTER LISTENERS ── */
+['search','date-from','date-to','filter-read','filter-attach'].forEach(id => {
+  document.getElementById(id).addEventListener('input', applyFilters);
+  document.getElementById(id).addEventListener('change', applyFilters);
+});
+
+/* ── KEYBOARD NAV ── */
+document.addEventListener('keydown', e => {
+  if (!filtered.length) return;
+  if (e.target.tagName === 'INPUT') return;
+  const cur = filtered.findIndex(x => allEmails.indexOf(x) === activeIdx);
+  if (e.key === 'ArrowDown') { e.preventDefault(); openEmail(allEmails.indexOf(filtered[Math.min(cur + 1, filtered.length - 1)])); }
+  if (e.key === 'ArrowUp')   { e.preventDefault(); openEmail(allEmails.indexOf(filtered[Math.max(cur - 1, 0)])); }
+});
+
+applyFilters();
+</script>
+</body>
+</html>

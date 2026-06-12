@@ -39,6 +39,11 @@ async init() {
         );
         this.search = new Search();
 
+        // Initialize Desktop Widgets
+        if (window.WidgetManager) {
+            window.WidgetManager.init();
+        }
+
         // Fix: Prevent default on dragover/drop to stop the forbidden cursor inside the webview
         document.addEventListener('dragover', (e) => {
             e.preventDefault(); // Tells Windows we are a valid drop target

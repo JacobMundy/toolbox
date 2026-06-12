@@ -1,54 +1,17 @@
 {
+  "productName": "Toolbox",
+  "version": "0.1.0",
+  "identifier": "com.toolbox.app",
   "build": {
     "beforeDevCommand": "npm run sync-libs",
     "beforeBuildCommand": "npm run sync-libs",
-    "devPath": "../frontend",
-    "distDir": "../frontend",
-    "withGlobalTauri": true
+    "frontendDist": "../frontend"
   },
-  "package": {
-    "productName": "Toolbox",
-    "version": "0.1.0"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "shell": {
-        "all": false,
-        "open": true,
-        "execute": true,
-        "sidecar": false,
-        "scope": [
-          { "name": "python", "cmd": "python", "args": true },
-          { "name": "python3", "cmd": "python3", "args": true }
-        ]
-      },
-      "fs": {
-        "all": false,
-        "readFile": true,
-        "writeFile": true,
-        "readDir": true,
-        "createDir": true,
-        "scope": ["$HOME/Toolbox_Workspace/**"]
-      },
-      "dialog": {
-        "all": true
-      }
-    },
-    "bundle": {
-      "active": true,
-      "targets": "all",
-      "identifier": "com.toolbox.app",
-      "icon": [
-        "icons/icon.png",
-        "icons/icon.ico"
-      ]
-    },
-    "security": {
-      "csp": null
-    },
+  "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
+        "label": "main",
         "fullscreen": false,
         "resizable": true,
         "title": "Toolbox",
@@ -58,9 +21,19 @@
         "minHeight": 500,
         "decorations": true,
         "transparent": false,
-        "center": true,
-        "fileDropEnabled": false
+        "center": true
       }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
     ]
   }
 }
