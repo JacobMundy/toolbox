@@ -184,11 +184,25 @@ fn workspace_show_in_explorer(filename: Option<String>, subfolder: Option<String
 }
 
 fn main() {
+    #[cfg(debug_assertions)]
+    {
+        if std::env::var("WEBVIEW2_USER_DATA_FOLDER").is_err() {
+            if let Ok(mut dev_dir) = std::env::current_exe() {
+                dev_dir.pop();
+                dev_dir.push("webview2_dev_data");
+                std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", dev_dir);
+            }
+        }
+    }
+
     // In sysinfo 0.30, System::new_all() works but refresh_all() is often better
     let mut sys = System::new_all();
     sys.refresh_all();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_drag::init())
         .manage(AppState {
             sys: Mutex::new(sys),

@@ -95,7 +95,7 @@
         async function updateStats() {
             if (window.__TAURI__) {
                 try {
-                    const stats = await window.__TAURI__.invoke('get_system_stats');
+                    const stats = await window.__TAURI__.core.invoke('get_system_stats');
                     document.getElementById('cpu-stat').textContent = `CPU: ${stats.cpu_usage.toFixed(1)}%`;
                     document.getElementById('mem-stat').textContent = `RAM: ${stats.memory_usage_mb}MB`;
                 } catch (err) {
@@ -111,6 +111,7 @@
     <script src="js/window-manager.js"></script>
     <script src="js/search.js"></script>
     <script src="js/command-palette.js"></script>
+    <script src="js/widget-manager.js"></script>
     <script src="js/app.js"></script>
 
     <script>
@@ -140,6 +141,8 @@
     <script src="tools/workspace-browser.js"></script>
     <script src="tools/kanban.js"></script>
     <script src="tools/theme-settings.js"></script>
+    <script src="tools/date-checker.js"></script>
+    <script src="tools/html-viewer.js"></script>
 
     <!-- ═══════ Command Palette Init ═══════ -->
     <script>

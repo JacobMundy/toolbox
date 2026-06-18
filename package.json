@@ -8,7 +8,7 @@
     "dev": "tauri dev",
     "serve": "npx -y http-server frontend -p 3000",
     "test": "playwright test",
-    "sync-libs": "shx mkdir -p frontend/vs frontend/js/libs && shx cp -r node_modules/monaco-editor/min/vs/* frontend/vs/ && shx cp node_modules/sortablejs/Sortable.min.js frontend/js/libs/ && shx cp node_modules/fuse.js/dist/fuse.min.cjs frontend/js/libs/fuse.min.js",
+    "sync-libs": "shx mkdir -p frontend/vs frontend/js/libs && shx cp -r node_modules/monaco-editor/min/vs/* frontend/vs/ && shx cp node_modules/sortablejs/Sortable.min.js frontend/js/libs/ && shx cp node_modules/fuse.js/dist/fuse.min.js frontend/js/libs/fuse.min.js",
     "postinstall": "npm run sync-libs"
   },
   "keywords": [],
@@ -16,13 +16,13 @@
   "license": "ISC",
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "@tauri-apps/api": "^2.10.1",
-    "@tauri-apps/cli": "^1",
+    "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/cli": "^2.11.0",
     "@types/node": "^25.6.0",
+    "fuse.js": "^6.6.2",
     "shx": "^0.4.0"
   },
   "dependencies": {
-    "fuse.js": "^7.3.0",
     "monaco-editor": "^0.55.1",
     "prismjs": "^1.30.0",
     "sortablejs": "^1.15.7"

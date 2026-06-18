@@ -429,7 +429,7 @@
                         }
                     }
 
-                    const info = await window.__TAURI__.invoke('workspace_info', { subfolder });
+                    const info = await window.__TAURI__.core.invoke('workspace_info', { subfolder });
                     
                     currentFiles = info.files;
                     absoluteBasePath = info.path; 
@@ -693,7 +693,7 @@
                     
                     statusText.textContent = `Moving ${name}...`;
                     console.log('Invoking workspace_move backend command');
-                    await window.__TAURI__.invoke('workspace_move', {
+                    await window.__TAURI__.core.invoke('workspace_move', {
                         req: { from_name: name, from_subfolder: fromSubfolder, to_subfolder: toSubfolder }
                     });
                     console.log('workspace_move succeeded. Reloading files...');
@@ -721,7 +721,7 @@
                 updateMonaco(name, 'Reading…');
                 try {
                     const subfolder = currentPath.length > 0 ? currentPath.join('/') : null;
-                    const res = await window.__TAURI__.invoke('workspace_read', {
+                    const res = await window.__TAURI__.core.invoke('workspace_read', {
                         req: { filename: name, subfolder }
                     });
                     if (res.success) updateMonaco(name, res.content);
@@ -823,7 +823,7 @@
                     items.push({ icon: '📂', text: 'Show in Explorer', action: async () => {
                         try {
                             const subfolder = currentPath.length > 0 ? currentPath.join('/') : null;
-                            await window.__TAURI__.invoke('workspace_show_in_explorer', { filename: name, subfolder });
+                            await window.__TAURI__.core.invoke('workspace_show_in_explorer', { filename: name, subfolder });
                         } catch (e) { alert('Could not open explorer: ' + e); }
                     }});
                     items.push({ icon: '🗑️', text: 'Delete', danger: true, action: () => deleteItem(name) });
@@ -854,7 +854,7 @@
             async function openInTool(toolId, filename) {
                 const subfolder = currentPath.length > 0 ? currentPath.join('/') : null;
                 try {
-                    const res = await window.__TAURI__.invoke('workspace_read', { req: { filename, subfolder } });
+                    const res = await window.__TAURI__.core.invoke('workspace_read', { req: { filename, subfolder } });
                     if (res.success) {
                         const msg = { type: 'open', filename, content: res.content, subfolder };
                         if (!App.wm.sendToTool(toolId, msg)) {
@@ -870,7 +870,7 @@
                 if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
                 try {
                     const subfolder = currentPath.length > 0 ? currentPath.join('/') : null;
-                    await window.__TAURI__.invoke('workspace_delete', { filename: name, subfolder });
+                    await window.__TAURI__.core.invoke('workspace_delete', { filename: name, subfolder });
                     loadFiles();
                 } catch (e) { alert('Delete failed: ' + e); }
             }
@@ -880,7 +880,7 @@
                 if (!name) return;
                 try {
                     const subfolder = currentPath.length > 0 ? currentPath.join('/') : null;
-                    await window.__TAURI__.invoke('workspace_write', {
+                    await window.__TAURI__.core.invoke('workspace_write', {
                         req: { filename: name, content: '', subfolder }
                     });
                     loadFiles();
@@ -892,7 +892,7 @@
                 if (!name) return;
                 try {
                     const parent = currentPath.length > 0 ? currentPath.join('/') + '/' : '';
-                    await window.__TAURI__.invoke('workspace_create_dir', { subfolder: parent + name });
+                    await window.__TAURI__.core.invoke('workspace_create_dir', { subfolder: parent + name });
                     loadFiles();
                 } catch (e) { alert('Failed: ' + e); }
             }
@@ -902,15 +902,15 @@
                     console.log('Initiating native OS drag for:', filename, subfolder);
                     statusText.textContent = 'Dragging…';
                     
-                    const res = await window.__TAURI__.invoke('drag_file', { filename, subfolder, isDir });
+                    const res = await window.__TAURI__.core.invoke('drag_file', { filename, subfolder, isDir });
                     statusText.textContent = 'Ready';
                     
                     // If the OS says the drag was cancelled, we don't move anything
                     if (!res || !res.dropped) return;
                     
                     // We must convert physical screen coordinates to logical viewport coordinates
-                    const winPos = await window.__TAURI__.window.appWindow.innerPosition();
-                    const scale = await window.__TAURI__.window.appWindow.scaleFactor();
+                    const winPos = await window.__TAURI__.window.getCurrentWindow().innerPosition();
+                    const scale = await window.__TAURI__.window.getCurrentWindow().scaleFactor();
                     
                     // Convert screen pixels -> logical window pixels -> viewport CSS pixels
                     const clientX = (res.x / scale) - (winPos.x / scale);

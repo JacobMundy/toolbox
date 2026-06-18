@@ -240,7 +240,7 @@
 
                 try {
                     if (window.__TAURI__) {
-                        const result = await window.__TAURI__.invoke('run_python', { code });
+                        const result = await window.__TAURI__.core.invoke('run_python', { code });
                         const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
                         timerEl.textContent = `${elapsed}s`;
 
@@ -303,7 +303,7 @@
 
                 statusEl.textContent = 'Saving…';
                 try {
-                    const res = await window.__TAURI__.invoke('workspace_write', {
+                    const res = await window.__TAURI__.core.invoke('workspace_write', {
                         req: { filename, content: editor.getValue(), subfolder }
                     });
                     if (res.success) {

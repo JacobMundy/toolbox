@@ -91,6 +91,9 @@
 
         createUI(container) {
             const LS_KEY = 'toolbox_redactor_state';
+            let inputEditor = null;
+            let outputEditor = null;
+            let monacoInstance = null;
             let state = {
                 primary: { first_name: '', last_name: '', email: '', phone: '', city: '' },
                 family: [],
@@ -275,10 +278,7 @@
                 container.querySelector('#close-results').onclick = () => resultsPanel.classList.remove('open');
                 leakCount.onclick = () => resultsPanel.classList.add('open');
 
-                // Monaco State
-                let inputEditor = null;
-                let outputEditor = null;
-                let monacoInstance = null;
+                // Monaco State (declared in createUI scope)
 
                 async function initMonaco() {
                     try {
@@ -355,7 +355,7 @@
                     };
 
                     try {
-                        const result = await window.__TAURI__.invoke('redact_pii', { req: request });
+                        const result = await window.__TAURI__.core.invoke('redact_pii', { req: request });
                         if (outputEditor) outputEditor.setValue(result.output);
                         
                         // Show Report
@@ -399,8 +399,16 @@
 
             return {
                 cleanup: () => {
-                    if (inputEditor) inputEditor.dispose();
-                    if (outputEditor) outputEditor.dispose();
+                    try {
+                        if (inputEditor) inputEditor.dispose();
+                    } catch (e) {
+                        console.error('Failed to dispose inputEditor:', e);
+                    }
+                    try {
+                        if (outputEditor) outputEditor.dispose();
+                    } catch (e) {
+                        console.error('Failed to dispose outputEditor:', e);
+                    }
                 },
                 onMessage: (msg) => {
                     if (msg.type === 'open' && inputEditor) {

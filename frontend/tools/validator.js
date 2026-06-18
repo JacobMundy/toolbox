@@ -324,7 +324,7 @@
                 lastData = null;
 
                 try {
-                    const result = await window.__TAURI__.invoke('validate_data', {
+                    const result = await window.__TAURI__.core.invoke('validate_data', {
                         req: { text, format: formatSelect.value }
                     });
 
