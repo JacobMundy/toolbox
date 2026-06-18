@@ -25,3 +25,4 @@ Thumbs.db
 frontend/vs/
 frontend/js/libs/
 
+src-tauri/build_log.txt
