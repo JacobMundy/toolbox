@@ -8,22 +8,21 @@ const { test, expect } = require('@playwright/test');
 test.beforeEach(async ({ page }) => {
   // Mock Tauri environment for browser testing
   await page.addInitScript(() => {
-    window.__TAURI__ = {
-      invoke: async (cmd, args) => {
-        if (cmd === 'get_system_stats') return { cpu_usage: 12.5, memory_usage_mb: 1024 };
-        if (cmd === 'workspace_info') {
-          return {
-            path: '/mock/workspace',
-            files: [
-              { name: 'README.md', is_dir: false, size: 512, virtual_file: false },
-              { name: 'Notes', is_dir: true, size: 0, virtual_file: false }
-            ]
-          };
-        }
-        if (cmd === 'workspace_read') return { success: true, content: '# Mock Content\nTest passed.' };
-        return null;
+    const invoke = async (cmd, args) => {
+      if (cmd === 'get_system_stats') return { cpu_usage: 12.5, memory_usage_mb: 1024 };
+      if (cmd === 'workspace_info') {
+        return {
+          path: '/mock/workspace',
+          files: [
+            { name: 'README.md', is_dir: false, size: 512, virtual_file: false },
+            { name: 'Notes', is_dir: true, size: 0, virtual_file: false }
+          ]
+        };
       }
+      if (cmd === 'workspace_read') return { success: true, content: '# Mock Content\nTest passed.' };
+      return null;
     };
+    window.__TAURI__ = { invoke, core: { invoke } };
     localStorage.clear();
   });
   

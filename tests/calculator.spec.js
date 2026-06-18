@@ -3,13 +3,12 @@ const { test, expect } = require('@playwright/test');
 test.beforeEach(async ({ page }) => {
   // Mock Tauri environment for browser-based testing
   await page.addInitScript(() => {
-    window.__TAURI__ = {
-      invoke: async (cmd, args) => {
-        console.log('Tauri Invoke:', cmd, args);
-        if (cmd === 'get_system_stats') return { cpu_usage: 12.5, memory_usage_mb: 1024 };
-        return null;
-      }
+    const invoke = async (cmd, args) => {
+      console.log('Tauri Invoke:', cmd, args);
+      if (cmd === 'get_system_stats') return { cpu_usage: 12.5, memory_usage_mb: 1024 };
+      return null;
     };
+    window.__TAURI__ = { invoke, core: { invoke } };
     // Mock other global objects if needed
   });
   
