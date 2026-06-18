@@ -24,24 +24,8 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Get Playwright version
-      id: playwright-version
-      run: echo "version=$(npx playwright --version | tr -d 'Version ')" >> $GITHUB_OUTPUT
-
-    - name: Cache Playwright browsers
-      uses: actions/cache@v4
-      id: playwright-cache
-      with:
-        path: ~/.cache/ms-playwright
-        key: playwright-${{ steps.playwright-version.outputs.version }}-chromium
-
-    - name: Install Playwright Browsers
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps chromium
-
-    - name: Install Playwright system deps (cache hit)
-      if: steps.playwright-cache.outputs.cache-hit == 'true'
-      run: npx playwright install-deps chromium
+    - name: Install Playwright system deps
+      run: npx playwright install-deps chrome
 
     - name: Run Playwright tests
       run: npm test
