@@ -273,16 +273,42 @@
             const showDigital = cfg.style === 'digital' || cfg.style === 'both';
 
             if (showAnalog) {
+                let ticksHtml = '';
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i * 30) * Math.PI / 180;
+                    const x1 = 50 + 40 * Math.sin(angle);
+                    const y1 = 50 - 40 * Math.cos(angle);
+                    const x2 = 50 + 45 * Math.sin(angle);
+                    const y2 = 50 - 45 * Math.cos(angle);
+                    const isMajor = i % 3 === 0;
+                    const strokeWidth = isMajor ? 1.8 : 0.8;
+                    const opacity = isMajor ? 0.7 : 0.35;
+                    ticksHtml += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--text-secondary)" stroke-width="${strokeWidth}" opacity="${opacity}" />`;
+                }
+
+                let numbersHtml = '';
+                for (let i = 1; i <= 12; i++) {
+                    const angle = (i * 30) * Math.PI / 180;
+                    const nx = 50 + 31 * Math.sin(angle);
+                    const ny = 50 - 31 * Math.cos(angle);
+                    numbersHtml += `<text x="${nx.toFixed(1)}" y="${ny.toFixed(1)}" font-size="7.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle" fill="var(--text-secondary)" dominant-baseline="middle">${i}</text>`;
+                }
+
+                const svgSize = cfg.style === 'both' ? 100 : 110;
                 clockEl.innerHTML += `
-                    <svg width="85" height="85" viewBox="0 0 100 100" class="widget-clock-svg">
-                        <circle cx="50" cy="50" r="47" fill="rgba(255,255,255,0.01)" stroke="var(--glass-border)" stroke-width="2"/>
-                        <line x1="50" y1="4" x2="50" y2="10" stroke="var(--text-muted)" stroke-width="2"/>
-                        <line x1="96" y1="50" x2="90" y2="50" stroke="var(--text-muted)" stroke-width="2"/>
-                        <line x1="50" y1="96" x2="50" y2="90" stroke="var(--text-muted)" stroke-width="2"/>
-                        <line x1="4" y1="50" x2="10" y2="50" stroke="var(--text-muted)" stroke-width="2"/>
-                        <line class="hour-hand" x1="50" y1="50" x2="50" y2="28" stroke="var(--text-primary)" stroke-width="3" stroke-linecap="round"/>
-                        <line class="min-hand" x1="50" y1="50" x2="50" y2="16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
-                        <line class="sec-hand" x1="50" y1="50" x2="50" y2="12" stroke="var(--error)" stroke-width="1.2" stroke-linecap="round"/>
+                    <svg width="${svgSize}" height="${svgSize}" viewBox="0 0 100 100" class="widget-clock-svg">
+                        <defs>
+                            <radialGradient id="clock-grad-${cfg.id}" cx="50%" cy="50%" r="50%">
+                                <stop offset="70%" stop-color="rgba(255,255,255,0.01)"/>
+                                <stop offset="100%" stop-color="rgba(255,255,255,0.05)"/>
+                            </radialGradient>
+                        </defs>
+                        <circle cx="50" cy="50" r="47" fill="url(#clock-grad-${cfg.id})" stroke="var(--glass-border)" stroke-width="1.5"/>
+                        ${ticksHtml}
+                        ${numbersHtml}
+                        <line class="hour-hand" x1="50" y1="50" x2="50" y2="30" stroke="var(--text-primary)" stroke-width="2.5" stroke-linecap="round"/>
+                        <line class="min-hand" x1="50" y1="50" x2="50" y2="18" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
+                        <line class="sec-hand" x1="50" y1="50" x2="50" y2="14" stroke="var(--error)" stroke-width="1.0" stroke-linecap="round"/>
                         <circle cx="50" cy="50" r="2.5" fill="var(--error)"/>
                     </svg>
                 `;
@@ -297,14 +323,14 @@
 
             // Adjust size based on mode
             if (cfg.style === 'analog') {
-                clockEl.style.height = '120px';
-                clockEl.style.width = '120px';
+                clockEl.style.height = '140px';
+                clockEl.style.width = '140px';
             } else if (cfg.style === 'digital') {
                 clockEl.style.height = '90px';
                 clockEl.style.width = '160px';
             } else {
-                clockEl.style.height = '170px';
-                clockEl.style.width = '170px';
+                clockEl.style.height = '180px';
+                clockEl.style.width = '180px';
             }
 
             container.appendChild(clockEl);
