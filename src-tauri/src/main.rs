@@ -75,11 +75,13 @@ async fn drag_file(window: tauri::Window, filename: String, subfolder: Option<St
 
         #[cfg(target_os = "linux")]
         let handle = window.gtk_window().unwrap();
+        #[cfg(target_os = "linux")]
+        let handle_ref = &handle;
         #[cfg(not(target_os = "linux"))]
-        let handle = &window;
+        let handle_ref = &window;
 
         let _ = drag::start_drag(
-            handle,
+            handle_ref,
             item,
             icon,
             move |result, cursor_pos| {
